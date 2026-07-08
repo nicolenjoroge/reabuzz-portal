@@ -1,0 +1,24 @@
+{
+  "routes": [
+    {
+      "route": "/api/*",
+      "allowedRoles": ["content-editor"]
+    }
+  ],
+
+  "forwardingRules": [
+    {
+      "route": "/api/*",
+      "rewrite": "https://YOUR-FLASK-APP.azurewebsites.net/api/*"
+    }
+  ],
+
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/media/*", "/api/*"]
+  },
+
+  "globalHeaders": {
+    "Cache-Control": "no-store"
+  }
+}
