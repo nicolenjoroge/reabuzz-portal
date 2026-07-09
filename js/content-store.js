@@ -26,10 +26,11 @@
   // -------------------------------------------------------------------------
 
   // SWITCH: local dev points at Flask on 5000, production uses same-domain proxy
-  var API = (
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1'
-  ) ? 'http://localhost:5000/api' : '/api';
+var API =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+    ? "http://localhost:5000/api"
+    : "https://rea-buzz-api-layers-fkbra6a3dmahckh0.southafricanorth-01.azurewebsites.net/api";
 
   var AUTOSAVE_MS = 2000;  // wait 2s after last edit before saving
 
