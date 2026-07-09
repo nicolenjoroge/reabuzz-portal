@@ -191,7 +191,7 @@ var STREAM_META = {
         label: "Problem statement",
         type: "textarea",
         hidden: true,
-        expandable: true
+        expandable: true,
       },
       {
         key: "proposedSolution",
@@ -199,7 +199,7 @@ var STREAM_META = {
         type: "textarea",
         hidden: true,
         display: true,
-        expandable: true
+        expandable: true,
       },
       {
         key: "manHours",
@@ -231,7 +231,7 @@ var STREAM_META = {
         label: "Qualitative benefits",
         type: "textarea",
         hidden: true,
-        expandable: true
+        expandable: true,
       },
       { key: "targetCompletion", label: "Target completion", type: "date" },
       {
@@ -294,7 +294,7 @@ var STREAM_META = {
         label: "Problem statement",
         type: "textarea",
         hidden: true,
-        expandable: true
+        expandable: true,
       },
       {
         key: "proposedSolution",
@@ -302,7 +302,7 @@ var STREAM_META = {
         type: "textarea",
         hidden: true,
         display: true,
-        expandable: true
+        expandable: true,
       },
       {
         key: "manHours",
@@ -328,7 +328,7 @@ var STREAM_META = {
         label: "Qualitative benefits",
         type: "textarea",
         hidden: true,
-        expandable: true
+        expandable: true,
       },
       { key: "targetCompletion", label: "Target completion", type: "date" },
       {
@@ -379,7 +379,7 @@ var STREAM_META = {
         label: "Problem statement",
         type: "textarea",
         hidden: true,
-        expandable: true
+        expandable: true,
       },
       {
         key: "proposedSolution",
@@ -387,7 +387,7 @@ var STREAM_META = {
         type: "textarea",
         hidden: true,
         display: true,
-        expandable: true
+        expandable: true,
       },
       {
         key: "manHours",
@@ -491,7 +491,7 @@ var STREAM_META = {
         label: "Problem statement",
         type: "textarea",
         hidden: true,
-        expandable: true
+        expandable: true,
       },
       {
         key: "proposedSolution",
@@ -499,7 +499,7 @@ var STREAM_META = {
         type: "textarea",
         hidden: true,
         display: true,
-        expandable: true
+        expandable: true,
       },
       {
         key: "manHours",
@@ -643,12 +643,12 @@ function header(title, desc, actions) {
 
 function toggleExpandRow(btn) {
   var wrap = btn.parentNode;
-  var full = wrap.querySelector('.td-expand-full');
-  var text = wrap.querySelector('.td-expand-text');
-  var isOpen = full.style.display !== 'none';
-  full.style.display  = isOpen ? 'none' : 'block';
-  text.style.display  = isOpen ? '' : 'none';
-  btn.innerHTML       = isOpen ? '&#x25BC;' : '&#x25B2;';
+  var full = wrap.querySelector(".td-expand-full");
+  var text = wrap.querySelector(".td-expand-text");
+  var isOpen = full.style.display !== "none";
+  full.style.display = isOpen ? "none" : "block";
+  text.style.display = isOpen ? "" : "none";
+  btn.innerHTML = isOpen ? "&#x25BC;" : "&#x25B2;";
 }
 
 function pillClass(s) {
@@ -678,49 +678,57 @@ function renderStream(streamKey) {
   });
   // .slice(0, 7);
 
-  var thRow = '<th style="width:40px;">#</th>' +
-  tableCols.map(function (c) {
-    return '<th>' + c.label + '</th>';
-  }).join('') + '<th></th>';
+  var thRow =
+    '<th style="width:40px;">#</th>' +
+    tableCols
+      .map(function (c) {
+        return "<th>" + c.label + "</th>";
+      })
+      .join("") +
+    "<th></th>";
 
   var rows = data.length
     ? data
         .map(function (rec, rowIdx) {
-          var tds = '<td class="td-mono" style="color:var(--txt2);opacity:.5;">' + (rowIdx + 1) + '</td>' + tableCols
-            .map(function (c) {
-              var val = rec[c.key] !== undefined ? rec[c.key] : "—";
-              if (c.type === "status")
-                return (
-                  '<td><span class="pill ' +
-                  pillClass(String(val)) +
-                  '">' +
-                  val +
-                  "</span></td>"
-                );
-              if (c.key === "nexusId")
-                return '<td class="td-mono">' + val + "</td>";
-              if (c.key === "processName")
-                return '<td class="td-name">' + val + "</td>";
-              if (c.expandable)
-                return (
-                  '<td class="td-expandable">' +
-                  '<div class="td-expand-wrap">' +
-                  '<span class="td-expand-text">' +
-                  String(val).substring(0, 60) +
-                  (String(val).length > 60 ? "…" : "") +
-                  "</span>" +
-                  (String(val).length > 60
-                    ? '<button class="td-expand-btn" onclick="toggleExpandRow(this)">&#x25BC;</button>'
-                    : "") +
-                  '<div class="td-expand-full" style="display:none;">' +
-                  val +
-                  "</div>" +
-                  "</div>" +
-                  "</td>"
-                );
-              return "<td>" + val + "</td>";
-            })
-            .join("");
+          var tds =
+            '<td class="td-mono" style="color:var(--txt2);opacity:.5;">' +
+            (rowIdx + 1) +
+            "</td>" +
+            tableCols
+              .map(function (c) {
+                var val = rec[c.key] !== undefined ? rec[c.key] : "—";
+                if (c.type === "status")
+                  return (
+                    '<td><span class="pill ' +
+                    pillClass(String(val)) +
+                    '">' +
+                    val +
+                    "</span></td>"
+                  );
+                if (c.key === "nexusId")
+                  return '<td class="td-mono">' + val + "</td>";
+                if (c.key === "processName")
+                  return '<td class="td-name">' + val + "</td>";
+                if (c.expandable)
+                  return (
+                    '<td class="td-expandable">' +
+                    '<div class="td-expand-wrap">' +
+                    '<span class="td-expand-text">' +
+                    String(val).substring(0, 60) +
+                    (String(val).length > 60 ? "…" : "") +
+                    "</span>" +
+                    (String(val).length > 60
+                      ? '<button class="td-expand-btn" onclick="toggleExpandRow(this)">&#x25BC;</button>'
+                      : "") +
+                    '<div class="td-expand-full" style="display:none;">' +
+                    val +
+                    "</div>" +
+                    "</div>" +
+                    "</td>"
+                  );
+                return "<td>" + val + "</td>";
+              })
+              .join("");
           return (
             "<tr>" +
             tds +
@@ -748,6 +756,8 @@ function renderStream(streamKey) {
     ) +
     '<div class="panel-body"><div class="table-wrap">' +
     '<div class="table-toolbar">' +
+    '<button class="btn btn-ghost btn-sm" onclick="exportStream(\'' + streamKey + '\')">&#x2193; Export</button>' +
+'<button class="btn btn-ghost btn-sm" onclick="showToast(\'Synced\', \'success\')">⟳ Sync</button>' +
     '<input class="search-input" placeholder="Search ' +
     meta.label +
     '…" data-action="filter" data-stream="' +
@@ -793,6 +803,60 @@ function renderStream(streamKey) {
     }
   };
 }
+
+function exportStream(streamKey) {
+  var meta = STREAM_META[streamKey];
+  var data = streamData[streamKey] || [];
+
+  if (!data.length) {
+    showToast('No data to export', 'info');
+    return;
+  }
+
+  var exportCols = meta.cols.filter(function (c) {
+    return c.key !== '_db' && c.key !== '_tempKey';
+  });
+
+  var rows = data.map(function (rec) {
+    var row = {};
+    exportCols.forEach(function (c) {
+      row[c.label] = rec[c.key] !== undefined ? rec[c.key] : '';
+    });
+    return row;
+  });
+
+  var ws = XLSX.utils.json_to_sheet(rows);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, meta.label);
+
+  var colWidths = exportCols.map(function (c) {
+    var maxLen = c.label.length;
+    data.forEach(function (rec) {
+      var val = rec[c.key] !== undefined ? String(rec[c.key]) : '';
+      if (val.length > maxLen) maxLen = val.length;
+    });
+    return { wch: Math.min(maxLen + 2, 50) };
+  });
+  ws['!cols'] = colWidths;
+
+  var filename = meta.label + '_export_' + new Date().toISOString().split('T')[0] + '.xlsx';
+  XLSX.writeFile(wb, filename);
+
+  // Log the export
+  var user = currentRole === 'bpm' ? 'BPM User' : 'Editorial User';
+  fetch(API_BASE + '/audit/export', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({
+      stream:      streamKey,
+      records:     data.length,
+      exportedBy:  user,
+    }),
+  }).catch(function (e) { console.warn('audit log failed:', e.message); });
+
+  showToast('Exported ' + data.length + ' records \u2713', 'success');
+}
+
 
 function filterStream(streamKey, q) {
   var meta = STREAM_META[streamKey];
@@ -1134,7 +1198,7 @@ var BLOB_CONFIG = { account: "bpmstoryhub", container: "media", sasToken: "" };
 var mediaItems = [];
 var mediaLoading = false;
 var mediaFilter = { type: "all", search: "" };
-
+var mediaReady = false;
 // Fetch SAS token from Flask on boot, then pre-load media items
 fetch(API_BASE + "/media-url")
   .then(function (r) {
@@ -1144,6 +1208,7 @@ fetch(API_BASE + "/media-url")
     BLOB_CONFIG.sasToken = data.sas;
     // Pre-load media so the picker is ready before user visits Media Library
     listBlobs(function () {
+      mediaReady = true;
       if (window.currentPanel === "media") renderMedia();
     });
   })
@@ -1195,14 +1260,17 @@ function listBlobs(callback) {
 }
 
 function uploadBlob(file, onProgress, onDone, onError) {
-  var name = file.name.replace(/\s+/g, "-");
+  var cleanName = file.name.replace(/\s+/g, "-");
+  var folder = file.type.startsWith("video") ? "videos" : "Images";
+  var blobPath = folder + "/" + cleanName;
+
   var url =
     "https://" +
     BLOB_CONFIG.account +
     ".blob.core.windows.net/" +
     BLOB_CONFIG.container +
     "/" +
-    encodeURIComponent(name) +
+    blobPath.split("/").map(encodeURIComponent).join("/") +
     "?" +
     BLOB_CONFIG.sasToken;
 
@@ -1214,12 +1282,12 @@ function uploadBlob(file, onProgress, onDone, onError) {
   xhr.onload = function () {
     if (xhr.status === 201 || xhr.status === 200) {
       mediaItems.unshift({
-        name: name,
+        name: blobPath, // store full path e.g. "Images/bpm.png"
         size: file.size,
         lastModified: new Date().toISOString().split("T")[0],
         type: file.type.startsWith("video") ? "video" : "image",
       });
-      if (onDone) onDone(name);
+      if (onDone) onDone(blobPath);
     } else {
       if (onError) onError(xhr.statusText);
     }
@@ -1265,6 +1333,7 @@ function findUsages(name) {
 }
 
 function formatSize(bytes) {
+  if (!bytes) return "";
   return bytes > 1048576
     ? (bytes / 1048576).toFixed(1) + " MB"
     : (bytes / 1024).toFixed(0) + " KB";
@@ -1383,6 +1452,8 @@ function handleFiles(files) {
   var allowed = [
     "image/jpeg",
     "image/png",
+    "image/gif",
+    "image/svg",
     "image/webp",
     "video/mp4",
     "video/quicktime",
@@ -1391,8 +1462,8 @@ function handleFiles(files) {
     showToast("File type not allowed.", "danger");
     return;
   }
-  if (file.size > 500 * 1024 * 1024) {
-    showToast("File too large (max 500MB).", "danger");
+  if (file.size > 1000 * 1024 * 1024) {
+    showToast("File too large (max 1GB).", "danger");
     return;
   }
 
@@ -1455,125 +1526,139 @@ var _pickerType = "all";
 function openMediaPicker(type, callback) {
   _pickerCallback = callback;
   _pickerType = type || "all";
+
   var existing = document.getElementById("mediaPickerModal");
   if (existing) existing.remove();
 
   var modal = document.createElement("div");
   modal.id = "mediaPickerModal";
   modal.style.cssText =
-    "position:fixed;inset:0;background:rgba(26,22,20,0.5);z-index:500;display:flex;align-items:center;justify-content:center;";
+    "position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;";
+
   modal.innerHTML =
-    '<div style="background:#fff;border-radius:14px;width:760px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.25);">' +
-    '<div style="padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">' +
-    '<div><div style="font-size:15px;font-weight:bold;">Media library</div><div style="font-size:12px;color:var(--txt2);">Select a ' +
-    (type || "file") +
-    "</div></div>" +
+    '<div style="background:#fff;border-radius:12px;width:560px;max-height:70vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">' +
+    '<div style="font-size:15px;font-weight:bold;">Choose ' +
+    (type === "video" ? "a video" : "an image") +
+    "</div>" +
     '<div style="display:flex;gap:8px;align-items:center;">' +
-    '<input id="pickerSearch" class="search-input" placeholder="Search…" style="max-width:200px;" oninput="renderPickerGrid(this.value)">' +
-    '<button style="background:none;border:none;font-size:20px;color:var(--txt2);cursor:pointer;" onclick="closeMediaPicker()">✕</button>' +
-    "</div></div>" +
-    '<div id="pickerGrid" style="flex:1;overflow-y:auto;padding:18px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;"></div>' +
-    '<div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">' +
-    '<button class="btn btn-ghost btn-sm" onclick="triggerUploadFromPicker()">↑ Upload new</button>' +
+    '<input id="pickerSearch" placeholder="Search…" style="border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:13px;width:180px;" oninput="_renderPickerList(this.value)">' +
+    '<button onclick="closeMediaPicker()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--txt2);">&#x2715;</button>' +
+    "</div>" +
+    "</div>" +
+    '<div id="pickerList" style="flex:1;overflow-y:auto;"></div>' +
+    '<div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">' +
+    '<button class="btn btn-ghost btn-sm" id="pickerUploadBtn">&#x2191; Upload new</button>' +
     '<button class="btn btn-ghost btn-sm" onclick="closeMediaPicker()">Cancel</button>' +
-    "</div></div>";
+    "</div>" +
+    "</div>";
+
   document.body.appendChild(modal);
+
+  // Close on backdrop click
   modal.addEventListener("click", function (e) {
     if (e.target === modal) closeMediaPicker();
   });
 
-  if (mediaItems.length === 0)
-    listBlobs(function () {
-      renderPickerGrid("");
+  // Upload button
+  document
+    .getElementById("pickerUploadBtn")
+    .addEventListener("click", function () {
+      var input = document.createElement("input");
+      input.type = "file";
+      input.accept =
+        _pickerType === "video" ? "video/mp4,video/quicktime" : "image/*";
+      input.onchange = function () {
+        if (!this.files.length) return;
+        handleFiles(this.files);
+        // After upload, refresh the list
+        setTimeout(function () {
+          _renderPickerList("");
+        }, 2000);
+      };
+      input.click();
     });
-  else renderPickerGrid("");
+
+  // Render list — load if needed
+  if (mediaReady) {
+    _renderPickerList("");
+  } else {
+    document.getElementById("pickerList").innerHTML =
+      '<div style="padding:24px;text-align:center;color:var(--txt2);">Loading…</div>';
+    listBlobs(function () {
+      mediaReady = true;
+      _renderPickerList("");
+    });
+  }
 }
 
-function renderPickerGrid(search) {
+function _renderPickerList(search) {
+  var list = document.getElementById("pickerList");
+  if (!list) return;
+
   var items = mediaItems.filter(function (m) {
     return (
       (_pickerType === "all" || m.type === _pickerType) &&
       (!search || m.name.toLowerCase().includes(search.toLowerCase()))
     );
   });
-  var grid = document.getElementById("pickerGrid");
-  if (!grid) return;
 
   if (!items.length) {
-    grid.style.display = "block";
-    grid.innerHTML =
-      '<div class="empty-state"><div class="es-icon">🗂</div><h4>No files</h4><p>Upload one first</p></div>';
+    list.innerHTML =
+      '<div style="padding:24px;text-align:center;color:var(--txt2);font-size:13px;">No files found.</div>';
     return;
   }
 
-  grid.style.display = "grid";
-  grid.innerHTML = items
+  list.innerHTML = items
     .map(function (m, i) {
       return (
-        '<div class="picker-cell" data-index="' +
+        '<div style="padding:10px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;cursor:pointer;" ' +
+        'id="picker_item_' +
         i +
-        '" style="cursor:pointer;border:2px solid #e0ddd6;border-radius:10px;overflow:hidden;">' +
-        '<div style="height:90px;background:#f5f4f0;display:flex;align-items:center;justify-content:center;font-size:32px;">' +
-        (m.type === "video" ? "🎬" : "🖼") +
-        "</div>" +
-        '<div style="padding:8px 10px;border-top:1px solid #e0ddd6;">' +
-        '<div style="font-size:11px;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' +
-        m.name +
         '">' +
+        '<span style="font-size:20px;">' +
+        (m.type === "video" ? "🎬" : "🖼") +
+        "</span>" +
+        '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
         m.name +
         "</div>" +
-        '<div style="font-size:10px;color:#888;">' +
+        '<div style="font-size:11px;color:var(--txt2);">' +
         formatSize(m.size) +
         "</div>" +
         "</div>" +
+        '<span style="font-size:12px;color:var(--med);">Select</span>' +
         "</div>"
       );
     })
     .join("");
 
-  // Delegation — hover and click handled here, no inline handlers
-  grid.onclick = function (ev) {
-    var cell = ev.target;
-    while (cell && cell !== grid) {
-      if (cell.classList && cell.classList.contains("picker-cell")) break;
-      cell = cell.parentNode;
-    }
-    if (!cell || !cell.dataset || cell.dataset.index === undefined) return;
-    var m = items[Number(cell.dataset.index)];
-    if (!m) return;
-    // Build full blob URL to pass to callback, keep raw name for path storage
-    var url = blobUrl(m.name);
-    closeMediaPicker();
-    if (_pickerCallback) _pickerCallback(url, m.name);
-    _pickerCallback = null;
-  };
-
-  grid.onmouseover = function (ev) {
-    var cell = ev.target;
-    while (cell && cell !== grid) {
-      if (cell.classList && cell.classList.contains("picker-cell")) break;
-      cell = cell.parentNode;
-    }
-    if (cell && cell.classList && cell.classList.contains("picker-cell")) {
-      cell.style.borderColor = "#3ab3e5";
-    }
-  };
-
-  grid.onmouseout = function (ev) {
-    var cell = ev.target;
-    while (cell && cell !== grid) {
-      if (cell.classList && cell.classList.contains("picker-cell")) break;
-      cell = cell.parentNode;
-    }
-    if (cell && cell.classList && cell.classList.contains("picker-cell")) {
-      cell.style.borderColor = "#e0ddd6";
-    }
-  };
+  // Wire each item click directly
+  items.forEach(function (m, i) {
+    var el = document.getElementById("picker_item_" + i);
+    if (!el) return;
+    el.addEventListener("click", function () {
+      var url = blobUrl(m.name);
+      var name = m.name;
+      var cb = _pickerCallback; // grab reference first
+      _pickerCallback = null; // clear it
+      closeMediaPicker(); // close modal
+      if (cb) cb(url, name); // fire callback after
+    });
+    // Hover effect
+    el.addEventListener("mouseover", function () {
+      this.style.background = "#f5f4f0";
+    });
+    el.addEventListener("mouseout", function () {
+      this.style.background = "";
+    });
+  });
 }
 
 function closeMediaPicker() {
   var m = document.getElementById("mediaPickerModal");
   if (m) m.remove();
+  // Don't null _pickerCallback here — handled in click handler
 }
 
 function triggerUploadFromPicker() {
