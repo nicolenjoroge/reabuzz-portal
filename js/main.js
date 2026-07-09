@@ -20,7 +20,7 @@ const VERTICALS = [
   "DocuSign",
   "Enterprise",
 ];
-const DIVISIONS = [
+var DIVISIONS = [
   "Operations & Process",
   "Finance & Treasury",
   "Risk & Credit",
@@ -29,7 +29,7 @@ const DIVISIONS = [
   "Corporate & Investment Banking",
   "Customer Experience",
 ];
-const DEPARTMENTS = [
+var DEPARTMENTS = [
   "Operations",
   "Finance",
   "Contact Centre",
@@ -118,6 +118,10 @@ function loadDataFromApi() {
         ai: [],
       };
 
+      // Collect unique departments and divisions from real data
+      var depts = {};
+      var divs = {};
+
       items.forEach(function (it) {
         var section = (it.sectionId || "rpa").toLowerCase();
         var key =
@@ -127,7 +131,17 @@ function loadDataFromApi() {
             ? section
             : "rpa";
         streamData[key].push(mapServerItemToUI(it, key));
+
+        if (it.department) depts[it.department] = true;
+        if (it.division) divs[it.division] = true;
       });
+
+      // Update the global arrays so dropdowns reflect real data
+      var dbDepts = Object.keys(depts).sort();
+      var dbDivs = Object.keys(divs).sort();
+
+      if (dbDepts.length) DEPARTMENTS = dbDepts;
+      if (dbDivs.length) DIVISIONS = dbDivs;
 
       if (window.render) window.render();
     })
@@ -147,16 +161,28 @@ var STREAM_META = {
         key: "nexusId",
         label: "Nexus ID",
         type: "text",
-        readonly: true,
         short: true,
+        display: true,
       },
-      { key: "processName", label: "Process name", type: "text" },
-      { key: "status", label: "Status", type: "status", short: true },
+      {
+        key: "processName",
+        label: "Process name",
+        type: "text",
+        display: true,
+      },
+      {
+        key: "status",
+        label: "Status",
+        type: "status",
+        short: true,
+        display: true,
+      },
       {
         key: "department",
         label: "Department",
         type: "select",
         opts: "DEPARTMENTS",
+        display: true,
       },
       { key: "division", label: "Division", type: "select", opts: "DIVISIONS" },
       { key: "country", label: "Country", type: "text", short: true },
@@ -165,14 +191,23 @@ var STREAM_META = {
         label: "Problem statement",
         type: "textarea",
         hidden: true,
+        expandable: true
       },
       {
         key: "proposedSolution",
         label: "Proposed solution",
         type: "textarea",
         hidden: true,
+        display: true,
+        expandable: true
       },
-      { key: "manHours", label: "Man hours", type: "number", short: true },
+      {
+        key: "manHours",
+        label: "Man hours",
+        type: "number",
+        short: true,
+        display: true,
+      },
       {
         key: "incrementalHours",
         label: "Incremental hours",
@@ -196,9 +231,15 @@ var STREAM_META = {
         label: "Qualitative benefits",
         type: "textarea",
         hidden: true,
+        expandable: true
       },
       { key: "targetCompletion", label: "Target completion", type: "date" },
-      { key: "processOwner", label: "Process owner", type: "text" },
+      {
+        key: "processOwner",
+        label: "Process owner",
+        type: "text",
+        display: true,
+      },
       { key: "benefitsSigned", label: "Benefits signed off", type: "text" },
       { key: "developer", label: "Developer", type: "text", hidden: true },
       { key: "architect", label: "Architect", type: "text", hidden: true },
@@ -224,16 +265,28 @@ var STREAM_META = {
         key: "nexusId",
         label: "Nexus ID",
         type: "text",
-        readonly: true,
         short: true,
+        display: true,
       },
-      { key: "processName", label: "Process name", type: "text" },
-      { key: "status", label: "Status", type: "status", short: true },
+      {
+        key: "processName",
+        label: "Process name",
+        type: "text",
+        display: true,
+      },
+      {
+        key: "status",
+        label: "Status",
+        type: "status",
+        short: true,
+        display: true,
+      },
       {
         key: "department",
         label: "Department",
         type: "select",
         opts: "DEPARTMENTS",
+        display: true,
       },
       { key: "division", label: "Division", type: "select", opts: "DIVISIONS" },
       {
@@ -241,14 +294,23 @@ var STREAM_META = {
         label: "Problem statement",
         type: "textarea",
         hidden: true,
+        expandable: true
       },
       {
         key: "proposedSolution",
         label: "Proposed solution",
         type: "textarea",
         hidden: true,
+        display: true,
+        expandable: true
       },
-      { key: "manHours", label: "Man hours", type: "number", short: true },
+      {
+        key: "manHours",
+        label: "Man hours",
+        type: "number",
+        short: true,
+        display: true,
+      },
       {
         key: "paperPrintSavings",
         label: "Paper & print savings",
@@ -266,9 +328,15 @@ var STREAM_META = {
         label: "Qualitative benefits",
         type: "textarea",
         hidden: true,
+        expandable: true
       },
       { key: "targetCompletion", label: "Target completion", type: "date" },
-      { key: "processOwner", label: "Process owner", type: "text" },
+      {
+        key: "processOwner",
+        label: "Process owner",
+        type: "text",
+        display: true,
+      },
       { key: "bpmOwner", label: "BPM owner", type: "text" },
       { key: "benefitsSigned", label: "Benefits signed off", type: "text" },
       { key: "comments", label: "Comments", type: "textarea", hidden: true },
@@ -282,16 +350,28 @@ var STREAM_META = {
         key: "nexusId",
         label: "Nexus ID",
         type: "text",
-        readonly: true,
         short: true,
+        display: true,
       },
-      { key: "processName", label: "Process name", type: "text" },
-      { key: "status", label: "Status", type: "status", short: true },
+      {
+        key: "processName",
+        label: "Process name",
+        type: "text",
+        display: true,
+      },
+      {
+        key: "status",
+        label: "Status",
+        type: "status",
+        short: true,
+        display: true,
+      },
       {
         key: "department",
         label: "Department",
         type: "select",
         opts: "DEPARTMENTS",
+        display: true,
       },
       { key: "division", label: "Division", type: "select", opts: "DIVISIONS" },
       {
@@ -299,14 +379,23 @@ var STREAM_META = {
         label: "Problem statement",
         type: "textarea",
         hidden: true,
+        expandable: true
       },
       {
         key: "proposedSolution",
         label: "Proposed solution",
         type: "textarea",
         hidden: true,
+        display: true,
+        expandable: true
       },
-      { key: "manHours", label: "Man hours", type: "number", short: true },
+      {
+        key: "manHours",
+        label: "Man hours",
+        type: "number",
+        short: true,
+        display: true,
+      },
       {
         key: "paperSavings",
         label: "Paper savings",
@@ -315,7 +404,7 @@ var STREAM_META = {
       },
       { key: "tat", label: "TAT", type: "text", short: true },
       {
-        key: "costSavings",
+        key: "costSavingsDocusign",
         label: "Cost savings",
         type: "number",
         short: true,
@@ -333,7 +422,12 @@ var STREAM_META = {
         hidden: true,
       },
       { key: "targetCompletion", label: "Target completion", type: "date" },
-      { key: "processOwner", label: "Process owner", type: "text" },
+      {
+        key: "processOwner",
+        label: "Process owner",
+        type: "text",
+        display: true,
+      },
       {
         key: "benefitsApproved",
         label: "Benefits approved",
@@ -364,16 +458,28 @@ var STREAM_META = {
         key: "nexusId",
         label: "Nexus ID",
         type: "text",
-        readonly: true,
         short: true,
+        display: true,
       },
-      { key: "processName", label: "Process name", type: "text" },
-      { key: "status", label: "Status", type: "status", short: true },
+      {
+        key: "processName",
+        label: "Process name",
+        type: "text",
+        display: true,
+      },
+      {
+        key: "status",
+        label: "Status",
+        type: "status",
+        short: true,
+        display: true,
+      },
       {
         key: "department",
         label: "Department",
         type: "select",
         opts: "DEPARTMENTS",
+        display: true,
       },
       { key: "division", label: "Division", type: "select", opts: "DIVISIONS" },
       { key: "type", label: "Type", type: "text", short: true },
@@ -385,14 +491,23 @@ var STREAM_META = {
         label: "Problem statement",
         type: "textarea",
         hidden: true,
+        expandable: true
       },
       {
         key: "proposedSolution",
         label: "Proposed solution",
         type: "textarea",
         hidden: true,
+        display: true,
+        expandable: true
       },
-      { key: "manHours", label: "Man hours", type: "number", short: true },
+      {
+        key: "manHours",
+        label: "Man hours",
+        type: "number",
+        short: true,
+        display: true,
+      },
       {
         key: "incrementalHours",
         label: "Incremental hours",
@@ -418,7 +533,12 @@ var STREAM_META = {
         hidden: true,
       },
       { key: "targetCompletion", label: "Target completion", type: "date" },
-      { key: "processOwner", label: "Process owner", type: "text" },
+      {
+        key: "processOwner",
+        label: "Process owner",
+        type: "text",
+        display: true,
+      },
       { key: "benefitsSigned", label: "Benefits signed off", type: "text" },
       { key: "developer", label: "Developer", type: "text", hidden: true },
       { key: "comments", label: "Comments", type: "textarea", hidden: true },
@@ -521,6 +641,16 @@ function header(title, desc, actions) {
   );
 }
 
+function toggleExpandRow(btn) {
+  var wrap = btn.parentNode;
+  var full = wrap.querySelector('.td-expand-full');
+  var text = wrap.querySelector('.td-expand-text');
+  var isOpen = full.style.display !== 'none';
+  full.style.display  = isOpen ? 'none' : 'block';
+  text.style.display  = isOpen ? '' : 'none';
+  btn.innerHTML       = isOpen ? '&#x25BC;' : '&#x25B2;';
+}
+
 function pillClass(s) {
   return "pill-" + s.toLowerCase().replace(" ", "-");
 }
@@ -542,23 +672,21 @@ function renderStream(streamKey) {
   var meta = STREAM_META[streamKey];
   var data = streamData[streamKey] || [];
 
-  var tableCols = meta.cols
-    .filter(function (c) {
-      return !c.hidden && c.type !== "textarea";
-    })
-    .slice(0, 7);
+  var tableCols = meta.cols.filter(function (c) {
+    // return !c.hidden && c.type !== "textarea";
+    return c.display === true;
+  });
+  // .slice(0, 7);
 
-  var thRow =
-    tableCols
-      .map(function (c) {
-        return "<th>" + c.label + "</th>";
-      })
-      .join("") + "<th></th>";
+  var thRow = '<th style="width:40px;">#</th>' +
+  tableCols.map(function (c) {
+    return '<th>' + c.label + '</th>';
+  }).join('') + '<th></th>';
 
   var rows = data.length
     ? data
-        .map(function (rec) {
-          var tds = tableCols
+        .map(function (rec, rowIdx) {
+          var tds = '<td class="td-mono" style="color:var(--txt2);opacity:.5;">' + (rowIdx + 1) + '</td>' + tableCols
             .map(function (c) {
               var val = rec[c.key] !== undefined ? rec[c.key] : "—";
               if (c.type === "status")
@@ -573,6 +701,23 @@ function renderStream(streamKey) {
                 return '<td class="td-mono">' + val + "</td>";
               if (c.key === "processName")
                 return '<td class="td-name">' + val + "</td>";
+              if (c.expandable)
+                return (
+                  '<td class="td-expandable">' +
+                  '<div class="td-expand-wrap">' +
+                  '<span class="td-expand-text">' +
+                  String(val).substring(0, 60) +
+                  (String(val).length > 60 ? "…" : "") +
+                  "</span>" +
+                  (String(val).length > 60
+                    ? '<button class="td-expand-btn" onclick="toggleExpandRow(this)">&#x25BC;</button>'
+                    : "") +
+                  '<div class="td-expand-full" style="display:none;">' +
+                  val +
+                  "</div>" +
+                  "</div>" +
+                  "</td>"
+                );
               return "<td>" + val + "</td>";
             })
             .join("");
@@ -627,7 +772,10 @@ function renderStream(streamKey) {
     while (el && el !== this) {
       if (el.dataset && el.dataset.action) {
         if (el.dataset.action === "edit") {
-          editStreamRecord(_sk, el.dataset.id);
+          var rec = (streamData[_sk] || []).find(function (r) {
+            return r.nexusId === el.dataset.id;
+          });
+          editStreamRecord(_sk, el.dataset.id, rec);
           return;
         }
         if (el.dataset.action === "new-stream") {
@@ -651,11 +799,11 @@ function filterStream(streamKey, q) {
   var data = (streamData[streamKey] || []).filter(function (r) {
     return !q || JSON.stringify(r).toLowerCase().includes(q.toLowerCase());
   });
-  var tableCols = meta.cols
-    .filter(function (c) {
-      return !c.hidden && c.type !== "textarea";
-    })
-    .slice(0, 7);
+  var tableCols = meta.cols.filter(function (c) {
+    // return !c.hidden && c.type !== "textarea";
+    return c.display === true;
+  });
+  // .slice(0, 7);
 
   var rows = data.length
     ? data
@@ -698,20 +846,92 @@ function filterStream(streamKey, q) {
 }
 
 function newStreamRecord(streamKey) {
-  var newId = "NX-" + (1300 + (streamData[streamKey] || []).length);
-  var rec = {
-    nexusId: newId,
-    processName: "New " + STREAM_META[streamKey].label + " initiative",
-    status: "Pipeline",
-    department: "Operations",
-    division: "Operations & Process",
-  };
-  if (!streamData[streamKey]) streamData[streamKey] = [];
-  streamData[streamKey].push(rec);
-  editStreamRecord(streamKey, newId);
+  var meta = STREAM_META[streamKey];
+
+  document.getElementById("drawerTitle").textContent =
+    meta.label + " — New record";
+  document.getElementById("drawerSub").textContent =
+    "Fill in all required fields";
+  document.getElementById("drawerDelete").style.display = "none";
+
+  var fields = meta.cols
+    .map(function (col) {
+      var id = "sf_" + col.key;
+      var inp = "";
+      if (col.type === "status") {
+        inp =
+          '<select id="' +
+          id +
+          '">' +
+          STATUSES.map(function (s) {
+            return (
+              "<option" +
+              (s === "Pipeline" ? " selected" : "") +
+              ">" +
+              s +
+              "</option>"
+            );
+          }).join("") +
+          "</select>";
+      } else if (col.type === "select" && col.opts === "DIVISIONS") {
+        inp =
+          '<select id="' +
+          id +
+          '">' +
+          DIVISIONS.map(function (d) {
+            return "<option>" + d + "</option>";
+          }).join("") +
+          "</select>";
+      } else if (col.type === "select" && col.opts === "DEPARTMENTS") {
+        inp =
+          '<select id="' +
+          id +
+          '">' +
+          DEPARTMENTS.map(function (d) {
+            return "<option>" + d + "</option>";
+          }).join("") +
+          "</select>";
+      } else if (col.type === "textarea") {
+        inp = '<textarea id="' + id + '" style="min-height:70px;"></textarea>';
+      } else if (col.type === "number") {
+        inp = '<input id="' + id + '" type="number" value="0">';
+      } else if (col.type === "date") {
+        inp = '<input id="' + id + '" type="date">';
+      } else {
+        inp = '<input id="' + id + '">';
+      }
+      var wide =
+        col.type === "textarea" ||
+        col.key === "processName" ||
+        col.key === "problemStatement" ||
+        col.key === "proposedSolution" ||
+        col.key === "qualBenefits";
+      return (
+        '<div class="field"' +
+        (wide ? ' style="grid-column:span 2;"' : "") +
+        ">" +
+        "<label>" +
+        col.label +
+        "</label>" +
+        inp +
+        "</div>"
+      );
+    })
+    .join("");
+
+  document.getElementById("drawerBody").innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
+    fields +
+    "</div>";
+
+  window._editingType = "stream";
+  window._editingStream = streamKey;
+  window._editingRec = null; // null = new record
+
+  document.getElementById("drawerOverlay").className = "drawer-overlay open";
 }
 
-function editStreamRecord(streamKey, nexusId) {
+function editStreamRecord(streamKey, nexusId, rec) {
   var meta = STREAM_META[streamKey];
   var rec = (streamData[streamKey] || []).find(function (r) {
     return r.nexusId === nexusId;
@@ -754,14 +974,7 @@ function editStreamRecord(streamKey, nexusId) {
       var id = "sf_" + col.key;
       var inp = "";
 
-      if (col.readonly) {
-        inp =
-          '<input id="' +
-          id +
-          '" value="' +
-          val +
-          '" readonly style="opacity:0.6;">';
-      } else if (col.type === "status") {
+      if (col.type === "status") {
         inp =
           '<select id="' +
           id +
@@ -832,29 +1045,26 @@ function editStreamRecord(streamKey, nexusId) {
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
     fields +
     "</div>";
+  console.log(
+    "drawerBody innerHTML length:",
+    document.getElementById("drawerBody").innerHTML.length,
+  );
+  console.log("fields string length:", fields.length);
   document.getElementById("drawerOverlay").className = "drawer-overlay open";
 
   // saveDrawer for stream records — content-panels.js handles all other panels
   window._editingType = "stream";
   window._editingStream = streamKey;
-  window._editingNexusId = nexusId;
+  window._editingRec = rec;
 }
 
 // saveDrawer — defined in content-panels.js.
 // Stream record saving is handled via _saveStreamRecord() called from there.
 window._saveStreamRecord = function () {
   var streamKey = window._editingStream;
-  var nexusId = window._editingNexusId;
   var meta = STREAM_META[streamKey];
-  var rec = (streamData[streamKey] || []).find(function (r) {
-    return r.nexusId === nexusId;
-  });
-  if (!rec) {
-    closeDrawer();
-    return;
-  }
 
-  // Collect field values from drawer inputs
+  // Collect field values
   var payload = {};
   meta.cols.forEach(function (col) {
     var el = document.getElementById("sf_" + col.key);
@@ -864,8 +1074,10 @@ window._saveStreamRecord = function () {
   });
   payload.sectionId = streamKey.toUpperCase();
 
-  if (rec._db && rec._db.id) {
-    // Update existing record in Cosmos
+  var rec = window._editingRec;
+
+  if (rec && rec._db && rec._db.id) {
+    // UPDATE existing
     apiUpdateInitiative(rec._db.id, payload)
       .then(function (updated) {
         var idx = streamData[streamKey].indexOf(rec);
@@ -878,12 +1090,14 @@ window._saveStreamRecord = function () {
         showToast(e.error || "Save failed", "danger");
       });
   } else {
-    // Create new record in Cosmos
+    // CREATE new
+    if (!payload.nexusId) {
+      showToast("Please enter a Nexus ID", "danger");
+      return;
+    }
     apiCreateInitiative(payload)
       .then(function (created) {
-        // Replace the temp local record with the real one from the server
-        var idx = streamData[streamKey].indexOf(rec);
-        streamData[streamKey][idx] = mapServerItemToUI(created, streamKey);
+        streamData[streamKey].push(mapServerItemToUI(created, streamKey));
         showToast("Created \u2713", "success");
         closeDrawer();
         renderStream(streamKey);
@@ -1426,4 +1640,4 @@ function showToast(msg, type) {
 // ===== INIT =====
 // Load Cosmos data first, then let content-store.js render once the draft loads.
 loadDataFromApi();
-showPanel('stream_rpa');
+showPanel("stream_rpa");
