@@ -1063,9 +1063,11 @@ window._landingPickVideo = function () {
           },
         );
       }
+      
       closeDrawer();
-      window.renderPortfolio();
+      window.renderPortfolio(); 
     };
+    _wirePickers();
   };
 
   // -------------------------------------------------------------------------

@@ -871,8 +871,8 @@ function filterStream(streamKey, q) {
 
   var rows = data.length
     ? data
-        .map(function (rec) {
-          var tds = tableCols
+        .map(function (rec, rowIdx) {
+          var tds = '<td class="td-mono" style="color:var(--txt2);opacity:.5;">' + (rowIdx + 1) + '</td>' + tableCols
             .map(function (c) {
               var val = rec[c.key] !== undefined ? rec[c.key] : "—";
               if (c.type === "status")
@@ -887,6 +887,23 @@ function filterStream(streamKey, q) {
                 return '<td class="td-mono">' + val + "</td>";
               if (c.key === "processName")
                 return '<td class="td-name">' + val + "</td>";
+              if (c.expandable)
+                  return (
+                    '<td class="td-expandable">' +
+                    '<div class="td-expand-wrap">' +
+                    '<span class="td-expand-text">' +
+                    String(val).substring(0, 60) +
+                    (String(val).length > 60 ? "…" : "") +
+                    "</span>" +
+                    (String(val).length > 60
+                      ? '<button class="td-expand-btn" onclick="toggleExpandRow(this)">&#x25BC;</button>'
+                      : "") +
+                    '<div class="td-expand-full" style="display:none;">' +
+                    val +
+                    "</div>" +
+                    "</div>" +
+                    "</td>"
+                  );
               return "<td>" + val + "</td>";
             })
             .join("");
