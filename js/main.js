@@ -1578,23 +1578,34 @@ function openMediaPicker(type, callback) {
   });
 
   // Upload button
-  document
-    .getElementById("pickerUploadBtn")
-    .addEventListener("click", function () {
-      var input = document.createElement("input");
-      input.type = "file";
-      input.accept =
-        _pickerType === "video" ? "video/mp4,video/quicktime" : "image/*";
-      input.onchange = function () {
-        if (!this.files.length) return;
-        handleFiles(this.files);
-        // After upload, refresh the list
-        setTimeout(function () {
-          _renderPickerList("");
-        }, 2000);
-      };
-      input.click();
-    });
+  document.getElementById('pickerUploadBtn').addEventListener('click', function () {
+  var input    = document.createElement('input');
+  input.type   = 'file';
+  input.accept = _pickerType === 'video' ? 'video/mp4,video/quicktime' : 'image/*';
+  input.onchange = function () {
+    if (!this.files.length) return;
+    var file = this.files[0];
+    var list = document.getElementById('pickerList');
+    if (list) list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--txt2);">Uploading ' + file.name + '…</div>';
+
+    uploadBlob(file,
+      null,  // no progress bar in picker
+      function (blobPath) {
+        // success — select the uploaded file immediately
+        var cb = _pickerCallback;
+        _pickerCallback = null;
+        closeMediaPicker();
+        if (cb) cb(blobUrl(blobPath), blobPath);
+        showToast('Uploaded and selected: ' + blobPath + ' \u2713', 'success');
+      },
+      function (err) {
+        showToast('Upload failed: ' + err, 'danger');
+        _renderPickerList('');
+      }
+    );
+  };
+  input.click();
+});
 
   // Render list — load if needed
   if (mediaReady) {
