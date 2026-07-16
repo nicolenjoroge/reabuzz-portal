@@ -187,47 +187,23 @@
     );
   }
 
-  // function _wirePickers() {
-  //   document.querySelectorAll("[data-cspath]").forEach(function (btn) {
-  //     btn.addEventListener("click", function () {
-  //       var csPath = btn.dataset.cspath;
-  //       var previewId = btn.dataset.preview;
-  //       var mediaType = btn.dataset.mediatype;
-
-  //       openMediaPicker(mediaType, function (url, name) {
-  //         var path = name.startsWith("media/") ? name : "media/" + name;
-  //         CS.update(csPath, path);
-  //         var lbl = document.getElementById(previewId + "_path");
-  //         var img = document.getElementById(previewId);
-  //         if (lbl) lbl.textContent = path;
-  //         if (img && mediaType === "image") {
-  //           img.src = CS.mediaUrl(path);
-  //           img.style.display = "";
-  //         }
-  //       });
-  //     });
-  //   });
-  // }
-
-
-
   function _wirePickers(btnId, csPath, previewId, mediaType) {
-  var btn = document.getElementById(btnId);
-  if (!btn) return;
-  btn.addEventListener('click', function () {
-    openMediaPicker(mediaType, function (url, name) {
-      var path = name.startsWith('media/') ? name : 'media/' + name;
-      CS.update(csPath, path);
-      var lbl = document.getElementById(previewId + '_path');
-      var img = document.getElementById(previewId);
-      if (lbl) lbl.textContent = path;
-      if (img && mediaType === 'image') {
-        img.src = CS.mediaUrl(path);
-        img.style.display = '';
-      }
+    var btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      openMediaPicker(mediaType, function (url, name) {
+        var path = name.startsWith("media/") ? name : "media/" + name;
+        CS.update(csPath, path);
+        var lbl = document.getElementById(previewId + "_path");
+        var img = document.getElementById(previewId);
+        if (lbl) lbl.textContent = path;
+        if (img && mediaType === "image") {
+          img.src = CS.mediaUrl(path);
+          img.style.display = "";
+        }
+      });
     });
-  });
-}
+  }
 
   window._wirePickers = _wirePickers;
 
@@ -305,7 +281,6 @@
   //   landing.videoSlides.refIds[]
   //   landing.storyhub.refIds[]
   // -------------------------------------------------------------------------
-
   window.renderLanding = function () {
     var d = CS.get();
     if (!d) {
@@ -318,8 +293,16 @@
     var hero = l.hero || {};
     var featRef = (l.featuredInitiative && l.featuredInitiative.refId) || "";
     var videoRefs = (l.videoSlides && l.videoSlides.refIds) || [];
+    var storyhubRefs = (l.storyhub && l.storyhub.refIds) || [];
 
-    // Featured initiative dropdown — built from topInitiatives items
+    var teaserOptions = [
+      { id: "teaser-spotlight", label: "Spotlight" },
+      { id: "teaser-innovation", label: "Innovation Portfolio" },
+      { id: "teaser-reastory", label: "REA Story" },
+      { id: "teaser-whatsnew", label: "What's New" },
+    ];
+
+    // Featured initiative dropdown
     var initItems =
       (d.innovation &&
         d.innovation.topInitiatives &&
@@ -362,14 +345,11 @@
       })
       .join("");
 
-    // Video refId rows
-    // Video refId rows
+    // Video shelf rows
+    var allVideos =
+      (d.innovation && d.innovation.videos && d.innovation.videos.items) || [];
     var videoRows = videoRefs
       .map(function (id, i) {
-        // Find the matching video title for display
-        var allVideos =
-          (d.innovation && d.innovation.videos && d.innovation.videos.items) ||
-          [];
         var match = allVideos.find(function (v) {
           return v.id === id;
         });
@@ -377,17 +357,55 @@
         return listRow(
           e(label),
           null,
-          '<button class="btn btn-ghost btn-sm btn-icon" onclick="CS.removeItem(\'landing.videoSlides.refIds\',' +
+          '<button class="btn btn-ghost btn-sm btn-icon" onclick="CS.moveItem(\'landing.videoSlides.refIds\',' +
+            i +
+            ',-1);window.renderLanding()">\u2191</button>' +
+            '<button class="btn btn-ghost btn-sm btn-icon" onclick="CS.moveItem(\'landing.videoSlides.refIds\',' +
+            i +
+            ',1);window.renderLanding()">\u2193</button>' +
+            '<button class="btn btn-ghost btn-sm btn-icon" onclick="CS.removeItem(\'landing.videoSlides.refIds\',' +
             i +
             ');window.renderLanding()">&#x2715;</button>',
         );
       })
       .join("");
 
+    // Storyhub teaser rows
+    var storyhubRows = storyhubRefs
+      .map(function (id, i) {
+        var match = teaserOptions.find(function (t) {
+          return t.id === id;
+        });
+        var label = match ? match.label : id;
+        return listRow(
+          e(label),
+          e(id),
+          '<button class="btn btn-ghost btn-sm btn-icon" onclick="CS.moveItem(\'landing.storyhub.refIds\',' +
+            i +
+            ',-1);window.renderLanding()">\u2191</button>' +
+            '<button class="btn btn-ghost btn-sm btn-icon" onclick="CS.moveItem(\'landing.storyhub.refIds\',' +
+            i +
+            ',1);window.renderLanding()">\u2193</button>' +
+            '<button class="btn btn-ghost btn-sm btn-icon" onclick="CS.removeItem(\'landing.storyhub.refIds\',' +
+            i +
+            ');window.renderLanding()">&#x2715;</button>',
+        );
+      })
+      .join("");
+
+    var availableTeasers = teaserOptions.filter(function (t) {
+      return storyhubRefs.indexOf(t.id) === -1;
+    });
+    var addTeaserOpts = availableTeasers
+      .map(function (t) {
+        return '<option value="' + t.id + '">' + t.label + "</option>";
+      })
+      .join("");
+
     document.getElementById("mainArea").innerHTML =
       header(
         "Landing page",
-        "Marquee stats, hero text, featured initiative, video shelf.",
+        "Marquee stats, hero text, featured initiative, video shelf, and storyhub teasers.",
         toolbar("landing"),
       ) +
       '<div class="panel-body">' +
@@ -425,11 +443,34 @@
         videoRows +
           '<button class="add-btn" onclick="_landingPickVideo()">+ Add video</button>',
       ) +
-      +"</div>";
+      card(
+        "Storyhub teasers",
+        "landing.storyhub.refIds \u2014 order controls display sequence on the live site.",
+        storyhubRows +
+          (availableTeasers.length
+            ? '<div style="display:flex;gap:8px;align-items:center;margin-top:10px;">' +
+              '<select id="storyhub_add_sel" style="flex:1;">' +
+              '<option value="">— select section —</option>' +
+              addTeaserOpts +
+              "</select>" +
+              '<button class="btn btn-ghost btn-sm" id="storyhub_add_btn">+ Add</button>' +
+              "</div>"
+            : '<div style="font-size:12px;color:var(--txt2);margin-top:8px;">All sections added.</div>'),
+      ) +
+      "</div>";
 
     CS.appendFooter();
 
-    // _wirePickers();
+    // Wire storyhub add button
+    var addBtn = document.getElementById("storyhub_add_btn");
+    if (addBtn) {
+      addBtn.addEventListener("click", function () {
+        var sel = document.getElementById("storyhub_add_sel");
+        if (!sel || !sel.value) return;
+        CS.addItem("landing.storyhub.refIds", sel.value);
+        window.renderLanding();
+      });
+    }
   };
 
   // Marquee drawer
@@ -491,76 +532,101 @@
     };
   };
 
-window._landingPickVideo = function () {
-  var d         = CS.get();
-  var allVideos = (d.innovation && d.innovation.videos && d.innovation.videos.items) || [];
-  var existing  = (d.landing && d.landing.videoSlides && d.landing.videoSlides.refIds) || [];
+  window._landingPickVideo = function () {
+    var d = CS.get();
+    var allVideos =
+      (d.innovation && d.innovation.videos && d.innovation.videos.items) || [];
+    var existing =
+      (d.landing && d.landing.videoSlides && d.landing.videoSlides.refIds) ||
+      [];
 
-  if (!allVideos.length) {
-    showToast('No videos found — add videos in Innovation Portfolio first.', 'info');
-    return;
-  }
+    if (!allVideos.length) {
+      showToast(
+        "No videos found — add videos in Innovation Portfolio first.",
+        "info",
+      );
+      return;
+    }
 
-  // Filter out already-added videos
-  var available = allVideos.filter(function (v) {
-    return existing.indexOf(v.id) === -1;
-  });
+    // Filter out already-added videos
+    var available = allVideos.filter(function (v) {
+      return existing.indexOf(v.id) === -1;
+    });
 
-  if (!available.length) {
-    showToast('All videos are already in the shelf.', 'info');
-    return;
-  }
+    if (!available.length) {
+      showToast("All videos are already in the shelf.", "info");
+      return;
+    }
 
-  // Build a simple modal dropdown
-  var existing = document.getElementById('videoPickerModal');
-  if (existing) existing.remove();
+    // Build a simple modal dropdown
+    var existing = document.getElementById("videoPickerModal");
+    if (existing) existing.remove();
 
-  var modal = document.createElement('div');
-  modal.id  = 'videoPickerModal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
-  modal.innerHTML =
-    '<div style="background:#fff;border-radius:12px;width:460px;max-height:60vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
+    var modal = document.createElement("div");
+    modal.id = "videoPickerModal";
+    modal.style.cssText =
+      "position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;";
+    modal.innerHTML =
+      '<div style="background:#fff;border-radius:12px;width:460px;max-height:60vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
       '<div style="padding:16px 20px;border-bottom:1px solid var(--border);font-size:15px;font-weight:bold;">Add video to shelf</div>' +
       '<div style="flex:1;overflow-y:auto;">' +
-        available.map(function (v, i) {
-          return '<div id="vpick_' + i + '" style="padding:12px 20px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:12px;">' +
+      available
+        .map(function (v, i) {
+          return (
+            '<div id="vpick_' +
+            i +
+            '" style="padding:12px 20px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:12px;">' +
             '<span style="font-size:18px;">🎬</span>' +
             '<div style="flex:1;">' +
-              '<div style="font-size:13px;font-weight:500;">' + e(v.title) + '</div>' +
-              '<div style="font-size:11px;color:var(--txt2);">' + e(v.id) + ' · ' + e(v.tag) + '</div>' +
-            '</div>' +
+            '<div style="font-size:13px;font-weight:500;">' +
+            e(v.title) +
+            "</div>" +
+            '<div style="font-size:11px;color:var(--txt2);">' +
+            e(v.id) +
+            " · " +
+            e(v.tag) +
+            "</div>" +
+            "</div>" +
             '<span style="font-size:12px;color:var(--med);">Add</span>' +
-          '</div>';
-        }).join('') +
-      '</div>' +
+            "</div>"
+          );
+        })
+        .join("") +
+      "</div>" +
       '<div style="padding:12px 20px;border-top:1px solid var(--border);text-align:right;">' +
-        '<button class="btn btn-ghost btn-sm" id="vpick_cancel">Cancel</button>' +
-      '</div>' +
-    '</div>';
+      '<button class="btn btn-ghost btn-sm" id="vpick_cancel">Cancel</button>' +
+      "</div>" +
+      "</div>";
 
-  document.body.appendChild(modal);
+    document.body.appendChild(modal);
 
-  // Wire cancel
-  document.getElementById('vpick_cancel').addEventListener('click', function () {
-    modal.remove();
-  });
-  modal.addEventListener('click', function (e) {
-    if (e.target === modal) modal.remove();
-  });
-
-  // Wire each video item
-  available.forEach(function (v, i) {
-    var el = document.getElementById('vpick_' + i);
-    if (!el) return;
-    el.addEventListener('mouseover', function () { this.style.background = '#f5f4f0'; });
-    el.addEventListener('mouseout',  function () { this.style.background = ''; });
-    el.addEventListener('click', function () {
-      CS.addItem('landing.videoSlides.refIds', v.id);
-      modal.remove();
-      window.renderLanding();
+    // Wire cancel
+    document
+      .getElementById("vpick_cancel")
+      .addEventListener("click", function () {
+        modal.remove();
+      });
+    modal.addEventListener("click", function (e) {
+      if (e.target === modal) modal.remove();
     });
-  });
-};
+
+    // Wire each video item
+    available.forEach(function (v, i) {
+      var el = document.getElementById("vpick_" + i);
+      if (!el) return;
+      el.addEventListener("mouseover", function () {
+        this.style.background = "#f5f4f0";
+      });
+      el.addEventListener("mouseout", function () {
+        this.style.background = "";
+      });
+      el.addEventListener("click", function () {
+        CS.addItem("landing.videoSlides.refIds", v.id);
+        modal.remove();
+        window.renderLanding();
+      });
+    });
+  };
 
   // -------------------------------------------------------------------------
   // REA STORY
@@ -915,11 +981,11 @@ window._landingPickVideo = function () {
       "</div>";
 
     document.getElementById("drawerOverlay").className = "drawer-overlay open";
-    _wirePickers('btn_prev_init',    base + '.image',     'prev_init',    'image');    _drawerSave = function () {
+    _wirePickers("btn_prev_init", base + ".image", "prev_init", "image");
+    _drawerSave = function () {
       closeDrawer();
       window.renderPortfolio();
     };
-
   };
 
   // Deployed drawer
@@ -972,7 +1038,8 @@ window._landingPickVideo = function () {
       closeDrawer();
       window.renderPortfolio();
     };
-    _wirePickers('btn_prev_dep',     base + '.image',     'prev_dep',     'image');  };
+    _wirePickers("btn_prev_dep", base + ".image", "prev_dep", "image");
+  };
 
   // Coming soon drawer
   window._portfolioComingSoonDrawer = function (idx) {
@@ -1024,113 +1091,153 @@ window._landingPickVideo = function () {
       closeDrawer();
       window.renderPortfolio();
     };
-    _wirePickers('btn_prev_cs',      base + '.image',     'prev_cs',      'image');  };
+    _wirePickers("btn_prev_cs", base + ".image", "prev_cs", "image");
+  };
 
   // Video drawer
   window._portfolioVideoDrawer = function (idx) {
-  var d     = CS.get();
-  var arr   = (d.innovation.videos && d.innovation.videos.items) || [];
-  var isNew = idx < 0;
-  var v     = isNew ? { id: '', tag: '', title: '', thumbnail: '', poster: '', src: '' } : arr[idx];
-  var base  = 'innovation.videos.items.' + idx;
+    var d = CS.get();
+    var arr = (d.innovation.videos && d.innovation.videos.items) || [];
+    var isNew = idx < 0;
+    var v = isNew
+      ? { id: "", tag: "", title: "", thumbnail: "", poster: "", src: "" }
+      : arr[idx];
+    var base = "innovation.videos.items." + idx;
 
-  // For new items, use a temp object to collect picker selections
-  var tempItem = isNew ? { thumbnail: '', poster: '', src: '' } : null;
+    // For new items, use a temp object to collect picker selections
+    var tempItem = isNew ? { thumbnail: "", poster: "", src: "" } : null;
 
-  document.getElementById('drawerTitle').textContent    = isNew ? 'Add video' : 'Edit — ' + v.title;
-  document.getElementById('drawerSub').textContent      = isNew ? '' : v.id;
-  document.getElementById('drawerDelete').style.display = isNew ? 'none' : '';
-  document.getElementById('drawerDelete').onclick = function () {
-    CS.removeItem('innovation.videos.items', idx);
-    closeDrawer(); window.renderPortfolio();
-  };
-
-  document.getElementById('drawerBody').innerHTML =
-    '<div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px;">' +
-      field('ID',             '<input id="v_id"    value="' + e(v.id)    + '">') +
-      field('Tag / duration', '<input id="v_tag"   value="' + e(v.tag)   + '">') +
-      '<div class="field" style="grid-column:span 2">' +
-        field('Title', '<input id="v_title" value="' + e(v.title) + '">') +
-      '</div>' +
-      imagePicker(isNew ? '__temp__.thumbnail' : base + '.thumbnail', v.thumbnail, 'prev_vthumb') +
-      imagePicker(isNew ? '__temp__.poster'    : base + '.poster',    v.poster,    'prev_vposter') +
-      videoPicker(isNew ? '__temp__.src'       : base + '.src',       v.src,       'prev_vsrc') +
-    '</div>';
-
-  document.getElementById('drawerOverlay').className = 'drawer-overlay open';
-
-  // Wire pickers
-  if (isNew) {
-    // For new items, store picks in tempItem instead of _draft
-    var btnThumb  = document.getElementById('btn_prev_vthumb');
-    var btnPoster = document.getElementById('btn_prev_vposter');
-    var btnSrc    = document.getElementById('btn_prev_vsrc');
-
-    if (btnThumb) btnThumb.addEventListener('click', function () {
-      openMediaPicker('image', function (url, name) {
-        var path = name.startsWith('media/') ? name : 'media/' + name;
-        tempItem.thumbnail = path;
-        var lbl = document.getElementById('prev_vthumb_path');
-        var img = document.getElementById('prev_vthumb');
-        if (lbl) lbl.textContent = path;
-        if (img) { img.src = CS.mediaUrl(path); img.style.display = ''; }
-      });
-    });
-
-    if (btnPoster) btnPoster.addEventListener('click', function () {
-      openMediaPicker('image', function (url, name) {
-        var path = name.startsWith('media/') ? name : 'media/' + name;
-        tempItem.poster = path;
-        var lbl = document.getElementById('prev_vposter_path');
-        var img = document.getElementById('prev_vposter');
-        if (lbl) lbl.textContent = path;
-        if (img) { img.src = CS.mediaUrl(path); img.style.display = ''; }
-      });
-    });
-
-    if (btnSrc) btnSrc.addEventListener('click', function () {
-      openMediaPicker('video', function (url, name) {
-        var path = name.startsWith('media/') ? name : 'media/' + name;
-        tempItem.src = path;
-        var lbl = document.getElementById('prev_vsrc_path');
-        if (lbl) lbl.textContent = path;
-      });
-    });
-
-  } else {
-    // For existing items, update _draft directly
-    _wirePickers('btn_prev_vthumb',  base + '.thumbnail', 'prev_vthumb',  'image');
-    _wirePickers('btn_prev_vposter', base + '.poster',    'prev_vposter', 'image');
-    _wirePickers('btn_prev_vsrc',    base + '.src',       'prev_vsrc',    'video');
-  }
-
-  _drawerSave = function () {
-    var newItem = {
-      id:        document.getElementById('v_id').value,
-      tag:       document.getElementById('v_tag').value,
-      title:     document.getElementById('v_title').value,
-      thumbnail: isNew ? tempItem.thumbnail : (CS.get().innovation.videos.items[idx] || {}).thumbnail || '',
-      poster:    isNew ? tempItem.poster    : (CS.get().innovation.videos.items[idx] || {}).poster    || '',
-      src:       isNew ? tempItem.src       : (CS.get().innovation.videos.items[idx] || {}).src       || '',
-      featured:  true,
+    document.getElementById("drawerTitle").textContent = isNew
+      ? "Add video"
+      : "Edit — " + v.title;
+    document.getElementById("drawerSub").textContent = isNew ? "" : v.id;
+    document.getElementById("drawerDelete").style.display = isNew ? "none" : "";
+    document.getElementById("drawerDelete").onclick = function () {
+      CS.removeItem("innovation.videos.items", idx);
+      closeDrawer();
+      window.renderPortfolio();
     };
 
-    if (!newItem.id) {
-      showToast('Please enter a video ID', 'danger');
-      return;
+    document.getElementById("drawerBody").innerHTML =
+      '<div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px;">' +
+      field("ID", '<input id="v_id"    value="' + e(v.id) + '">') +
+      field("Tag / duration", '<input id="v_tag"   value="' + e(v.tag) + '">') +
+      '<div class="field" style="grid-column:span 2">' +
+      field("Title", '<input id="v_title" value="' + e(v.title) + '">') +
+      "</div>" +
+      imagePicker(
+        isNew ? "__temp__.thumbnail" : base + ".thumbnail",
+        v.thumbnail,
+        "prev_vthumb",
+      ) +
+      imagePicker(
+        isNew ? "__temp__.poster" : base + ".poster",
+        v.poster,
+        "prev_vposter",
+      ) +
+      videoPicker(isNew ? "__temp__.src" : base + ".src", v.src, "prev_vsrc") +
+      "</div>";
+
+    document.getElementById("drawerOverlay").className = "drawer-overlay open";
+
+    // Wire pickers
+    if (isNew) {
+      // For new items, store picks in tempItem instead of _draft
+      var btnThumb = document.getElementById("btn_prev_vthumb");
+      var btnPoster = document.getElementById("btn_prev_vposter");
+      var btnSrc = document.getElementById("btn_prev_vsrc");
+
+      if (btnThumb)
+        btnThumb.addEventListener("click", function () {
+          openMediaPicker("image", function (url, name) {
+            var path = name.startsWith("media/") ? name : "media/" + name;
+            tempItem.thumbnail = path;
+            var lbl = document.getElementById("prev_vthumb_path");
+            var img = document.getElementById("prev_vthumb");
+            if (lbl) lbl.textContent = path;
+            if (img) {
+              img.src = CS.mediaUrl(path);
+              img.style.display = "";
+            }
+          });
+        });
+
+      if (btnPoster)
+        btnPoster.addEventListener("click", function () {
+          openMediaPicker("image", function (url, name) {
+            var path = name.startsWith("media/") ? name : "media/" + name;
+            tempItem.poster = path;
+            var lbl = document.getElementById("prev_vposter_path");
+            var img = document.getElementById("prev_vposter");
+            if (lbl) lbl.textContent = path;
+            if (img) {
+              img.src = CS.mediaUrl(path);
+              img.style.display = "";
+            }
+          });
+        });
+
+      if (btnSrc)
+        btnSrc.addEventListener("click", function () {
+          openMediaPicker("video", function (url, name) {
+            var path = name.startsWith("media/") ? name : "media/" + name;
+            tempItem.src = path;
+            var lbl = document.getElementById("prev_vsrc_path");
+            if (lbl) lbl.textContent = path;
+          });
+        });
+    } else {
+      // For existing items, update _draft directly
+      _wirePickers(
+        "btn_prev_vthumb",
+        base + ".thumbnail",
+        "prev_vthumb",
+        "image",
+      );
+      _wirePickers(
+        "btn_prev_vposter",
+        base + ".poster",
+        "prev_vposter",
+        "image",
+      );
+      _wirePickers("btn_prev_vsrc", base + ".src", "prev_vsrc", "video");
     }
 
-    if (isNew) {
-      CS.addItem('innovation.videos.items', newItem);
-    } else {
-      ['id', 'tag', 'title', 'thumbnail', 'poster', 'src'].forEach(function (k) {
-        CS.update(base + '.' + k, newItem[k]);
-      });
-    }
-    closeDrawer();
-    window.renderPortfolio();
+    _drawerSave = function () {
+      var newItem = {
+        id: document.getElementById("v_id").value,
+        tag: document.getElementById("v_tag").value,
+        title: document.getElementById("v_title").value,
+        thumbnail: isNew
+          ? tempItem.thumbnail
+          : (CS.get().innovation.videos.items[idx] || {}).thumbnail || "",
+        poster: isNew
+          ? tempItem.poster
+          : (CS.get().innovation.videos.items[idx] || {}).poster || "",
+        src: isNew
+          ? tempItem.src
+          : (CS.get().innovation.videos.items[idx] || {}).src || "",
+        featured: true,
+      };
+
+      if (!newItem.id) {
+        showToast("Please enter a video ID", "danger");
+        return;
+      }
+
+      if (isNew) {
+        CS.addItem("innovation.videos.items", newItem);
+      } else {
+        ["id", "tag", "title", "thumbnail", "poster", "src"].forEach(
+          function (k) {
+            CS.update(base + "." + k, newItem[k]);
+          },
+        );
+      }
+      closeDrawer();
+      window.renderPortfolio();
+    };
   };
-};
 
   // -------------------------------------------------------------------------
   // SPOTLIGHT
