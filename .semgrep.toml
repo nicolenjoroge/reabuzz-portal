@@ -1,0 +1,31 @@
+# semgrep.toml
+# Configuration for Semgrep SAST — Portal (Frontend)
+# Place at repo root alongside main.js
+
+[semgrep]
+
+# ── Rules ──────────────────────────────────────────────────────────────────
+# Defined in the workflow via --config flags.
+# This file controls scan behaviour, not rule selection.
+
+# Fail the CI job if any ERROR severity finding is found.
+# WARN findings are reported but do not block the build.
+error_on_findings = false   # set to true when you are ready to enforce blocking
+
+# ── Scan targets ────────────────────────────────────────────────────────────
+[semgrep.scan]
+include = [
+  "*.js",
+  "*.html",
+]
+exclude = [
+  "node_modules/**",
+  "dist/**",
+  "*.min.js",        # minified files — too noisy, not your source
+]
+
+# ── Output ──────────────────────────────────────────────────────────────────
+[semgrep.output]
+# SARIF is uploaded to GitHub Security tab in the workflow.
+# JSON is useful for local debugging: run `semgrep scan --config auto --json`
+max_lines_per_finding = 5

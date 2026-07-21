@@ -964,6 +964,8 @@
       '<div class="field" style="grid-column:span 2"><label>Story — body</label>' +
       textarea(base + ".story.body", story.body, 6) +
       "</div>" +
+      
+      //change
       field(
         "Story — closing line",
         input(

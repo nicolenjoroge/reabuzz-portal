@@ -1,0 +1,29 @@
+# .semgrepignore
+# Portal (Frontend) repo
+# Semgrep skips everything listed here.
+# Syntax is identical to .gitignore.
+
+# ── Dependencies ────────────────────────────────────────────────────────────
+node_modules/
+
+# ── Minified / bundled files ─────────────────────────────────────────────────
+# These are not your source — scanning them produces noisy, unfixable findings.
+*.min.js
+*.bundle.js
+dist/
+build/
+
+# ── Vendor / third-party scripts ────────────────────────────────────────────
+# Add paths to any CDN-downloaded or vendored scripts you store locally.
+# e.g. js/vendor/
+# js/vendor/
+
+# ── Test files ───────────────────────────────────────────────────────────────
+# Uncomment if you add a test suite later.
+# tests/
+# *.test.js
+# *.spec.js
+
+# ── CI / tooling output ──────────────────────────────────────────────────────
+semgrep.sarif
+eslint-results.json

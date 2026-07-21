@@ -1,0 +1,114 @@
+name: SAST Security Scan — Portal (Frontend)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  security-events: write
+  contents: read
+  actions: read
+
+jobs:
+
+  # ── 1. Secret scanning ────────────────────────────────────────────────────
+  gitleaks:
+    name: Secret scanning (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── 2. Semgrep SAST — JS only ─────────────────────────────────────────────
+  semgrep:
+    name: Semgrep SAST
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+    container:
+      image: semgrep/semgrep:latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        run: |
+          semgrep scan \
+            --config p/javascript \
+            --config p/secrets \
+            --config p/owasp-top-ten \
+            --sarif \
+            --output semgrep.sarif \
+            .
+        continue-on-error: true
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+        if: always()
+
+      - name: Upload SARIF as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-sarif
+          path: semgrep.sarif
+        if: always()
+
+  # ── 3. ESLint security ────────────────────────────────────────────────────
+  eslint:
+    name: ESLint security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install ESLint v8 + security plugins
+        run: |
+          npm init -y
+          npm install --save-dev \
+            eslint@8 \
+            eslint-plugin-security \
+            eslint-plugin-no-unsanitized
+
+      - name: Create ESLint config
+        run: |
+          cat > .eslintrc.json << 'EOF'
+          {
+            "env": { "browser": true, "es2021": true },
+            "plugins": ["security", "no-unsanitized"],
+            "rules": {
+              "security/detect-eval-with-expression": "error",
+              "security/detect-unsafe-regex": "error",
+              "security/detect-non-literal-regexp": "warn",
+              "security/detect-object-injection": "warn",
+              "no-unsanitized/method": "error",
+              "no-unsanitized/property": "error"
+            }
+          }
+          EOF
+
+      - name: Run ESLint
+        run: |
+          npx eslint "*.js" \
+            --ignore-pattern "node_modules/**" \
+            --format json \
+            --output-file eslint-results.json || true
+
+      - name: Upload ESLint results
+        uses: actions/upload-artifact@v4
+        with:
+          name: eslint-results
+          path: eslint-results.json
+        if: always()
