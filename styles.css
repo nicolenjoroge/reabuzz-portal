@@ -225,12 +225,14 @@ textarea {
 }
 
 .nav-item .draft-dot {
+  display: inline-block;
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--sun);
-  position: absolute;
-  right: 16px;
+  background: var(--med, #3ab3e5);
+  margin-left: 6px;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
 .nav-item.nav-sub {

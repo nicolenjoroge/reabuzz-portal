@@ -151,6 +151,19 @@
   function update(path, value) {
     if (!_draft) return;
     _set(_draft, path, value);
+
+    var sectionMap = {
+      landing: "landing",
+      reaStory: "reastory",
+      innovation: "portfolio",
+      spotlight: "spotlight",
+      whatsNew: "whatsnew",
+    };
+    var section = path.split(".")[0];
+    if (window.markDraft && sectionMap[section]) {
+      window.markDraft(sectionMap[section]);
+    }
+
     _scheduleSave();
   }
 
