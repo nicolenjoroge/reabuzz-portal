@@ -9,7 +9,7 @@ pr:
       - main
 
 variables:
-  - group: static-web-apps-secrets  # Variable group must contain AZURE_STATIC_WEB_APPS_API_TOKEN_GRAY_FLOWER_070093B03
+  - group: AZURE_STATIC_WEB_APPS_API_TOKEN  # Variable group must contain AZURE_STATIC_WEB_APPS_API_TOKEN_GRAY_FLOWER_070093B03
 
 stages:
   # -------------------------------------------------------
