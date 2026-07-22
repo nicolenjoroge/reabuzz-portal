@@ -107,6 +107,18 @@
     });
   }
 
+  // Enable or disable all publish buttons
+  // enabled=true  → user can publish (change was made)
+  // enabled=false → button dimmed, disabled (no change yet / just published / just discarded)
+  function _setPublishEnabled(enabled) {
+    document.querySelectorAll(".btn-publish").forEach(function (btn) {
+      btn.disabled      = !enabled;
+      btn.style.opacity = enabled ? "" : "0.5";
+      btn.title         = enabled ? "" : "Make a change first";
+      if (!enabled) btn.textContent = "\u2191 Publish";
+    });
+  }
+
   // -------------------------------------------------------------------------
   // Auto-save
   // -------------------------------------------------------------------------
@@ -182,6 +194,7 @@
     var arr = _getArray(path);
     if (!arr) return;
     arr.push(item);
+    _setPublishEnabled(true);
     _scheduleSave();
   }
 
@@ -189,6 +202,7 @@
     var arr = _getArray(path);
     if (!arr) return;
     arr.splice(idx, 1);
+    _setPublishEnabled(true);
     _scheduleSave();
   }
 
@@ -199,6 +213,7 @@
     var tmp = arr[idx];
     arr[idx] = arr[newIdx];
     arr[newIdx] = tmp;
+    _setPublishEnabled(true);
     _scheduleSave();
   }
 
@@ -225,6 +240,7 @@
     if (!_draft) return;
     var user = window.currentRole === "bpm" ? "BPM User" : "Editorial User";
     // Disable all publish buttons
+    
     document.querySelectorAll(".btn-publish").forEach(function (btn) {
       btn.disabled = true;
       btn.textContent = "Publishing\u2026";
@@ -257,17 +273,9 @@
       })
       .catch(function (e) {
         _toast("Publish failed: " + e.message, "danger");
-        _setPublishEnabled(true);
+        _setPublishEnabled(true);  // re-enable so user can try again
       });
   }
-
-  function _setPublishEnabled(enabled) {
-  document.querySelectorAll('.btn-publish').forEach(function (btn) {
-    btn.disabled      = !enabled;
-    btn.style.opacity = enabled ? '' : '0.5';
-    btn.title         = enabled ? '' : 'Make a change first';
-  });
-}
 
   // -------------------------------------------------------------------------
   // Public: discard — reload draft from Flask
@@ -297,11 +305,7 @@
         document.querySelectorAll(".draft-dot").forEach(function (dot) {
           dot.style.display = "none";
         });
-        document.querySelectorAll(".btn-publish").forEach(function (btn) {
-          btn.disabled = true;
-          btn.style.opacity = "0.5";
-          btn.title = "Make a change first";
-        });
+        _setPublishEnabled(false)
         if (window.render) window.render();
       })
       .catch(function (e) {
@@ -445,11 +449,7 @@
     };
 
     // Disable publish buttons until a change is made
-    document.querySelectorAll(".btn-publish").forEach(function (btn) {
-      btn.disabled = true;
-      btn.style.opacity = "0.5";
-      btn.title = "Make a change first";
-    });
+    _setPublishEnabled(false)
   }
 
   // -------------------------------------------------------------------------
