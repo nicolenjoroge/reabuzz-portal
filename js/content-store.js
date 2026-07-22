@@ -164,6 +164,8 @@
       window.markDraft(sectionMap[section]);
     }
 
+    // Enable publish buttons now that a change has been made
+    _setPublishEnabled(true)
     _scheduleSave();
   }
 
@@ -245,52 +247,67 @@
         // Refresh version card if visible
         var vm = document.getElementById("cs-version-mount");
         if (vm) _renderVersionCard(vm);
-        _enablePublish();
+
+        document.querySelectorAll(".draft-dot").forEach(function (dot) {
+          dot.style.display = "none";
+        });
+
+        // Disable publish button:
+        _setPublishEnabled(false)
       })
       .catch(function (e) {
         _toast("Publish failed: " + e.message, "danger");
-        _enablePublish();
+        _setPublishEnabled(true);
       });
   }
 
-  function _enablePublish() {
-    document.querySelectorAll(".btn-publish").forEach(function (btn) {
-      btn.disabled = false;
-      btn.textContent = "\u2191 Publish";
-    });
-  }
+  function _setPublishEnabled(enabled) {
+  document.querySelectorAll('.btn-publish').forEach(function (btn) {
+    btn.disabled      = !enabled;
+    btn.style.opacity = enabled ? '' : '0.5';
+    btn.title         = enabled ? '' : 'Make a change first';
+  });
+}
 
   // -------------------------------------------------------------------------
   // Public: discard — reload draft from Flask
   // -------------------------------------------------------------------------
 
-function discard() {
-  // Get current live version from manifest
-  _req('GET', '/versions')
-    .then(function (manifest) {
-      if (!manifest || !manifest.liveVersion) {
-        _toast('Nothing published yet — cannot discard.', 'info');
-        return;
-      }
-      var liveVersion = 'v' + manifest.liveVersion;
+  function discard() {
+    // Get current live version from manifest
+    _req("GET", "/versions")
+      .then(function (manifest) {
+        if (!manifest || !manifest.liveVersion) {
+          _toast("Nothing published yet — cannot discard.", "info");
+          return;
+        }
+        var liveVersion = "v" + manifest.liveVersion;
 
-      // Rollback draft to live version but DON'T update liveVersion in manifest
-      return _req('POST', '/discard', { version: liveVersion });
-    })
-    .then(function (data) {
-      if (!data) return;
-      _draft = data;
-      _label('Reverted to last published');
-      _toast('Draft discarded \u2014 reverted to last published version.', 'info');
-      document.querySelectorAll('.draft-dot').forEach(function (dot) {
-        dot.style.display = 'none';
+        // Rollback draft to live version but DON'T update liveVersion in manifest
+        return _req("POST", "/discard", { version: liveVersion });
+      })
+      .then(function (data) {
+        if (!data) return;
+        _draft = data;
+        _label("Reverted to last published");
+        _toast(
+          "Draft discarded \u2014 reverted to last published version.",
+          "info",
+        );
+        document.querySelectorAll(".draft-dot").forEach(function (dot) {
+          dot.style.display = "none";
+        });
+        document.querySelectorAll(".btn-publish").forEach(function (btn) {
+          btn.disabled = true;
+          btn.style.opacity = "0.5";
+          btn.title = "Make a change first";
+        });
+        if (window.render) window.render();
+      })
+      .catch(function (e) {
+        _toast("Could not discard: " + e.message, "danger");
       });
-      if (window.render) window.render();
-    })
-    .catch(function (e) {
-      _toast('Could not discard: ' + e.message, 'danger');
-    });
-}
+  }
 
   // -------------------------------------------------------------------------
   // Public: rollback
@@ -420,15 +437,19 @@ function discard() {
   // -------------------------------------------------------------------------
 
   function _patch() {
-    // Replace stub publishSection(section) from main.js
     window.publishSection = function (section) {
       publish(section);
     };
-
-    // Replace stub discardDraft(section) from main.js
     window.discardDraft = function () {
       discard();
     };
+
+    // Disable publish buttons until a change is made
+    document.querySelectorAll(".btn-publish").forEach(function (btn) {
+      btn.disabled = true;
+      btn.style.opacity = "0.5";
+      btn.title = "Make a change first";
+    });
   }
 
   // -------------------------------------------------------------------------
