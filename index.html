@@ -40,36 +40,93 @@
 
     <!-- SIDE NAV -->
     <nav class="sidenav">
+
+      <div class="sidenav-section" id="navDashboardSection">
+        <div class="sidenav-section-label"
+          style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;"
+          onclick="toggleDashboardNav()">
+          Dashboard
+          <span id="dashNavArrow" style="font-size:11px;color:var(--txt2);transition:transform .2s;">▼</span>
+        </div>
+        <div id="dashNavItems">
+          <div class="nav-item nav-sub" data-panel="stream_rpa" onclick="showPanel('stream_rpa')">
+            RPA
+          </div>
+          <div class="nav-item nav-sub" data-panel="stream_powerapps" onclick="showPanel('stream_powerapps')">
+            PowerApps
+          </div>
+          <div class="nav-item nav-sub" data-panel="stream_poweragents" onclick="showPanel('stream_poweragents')">
+            Power Agents
+          </div>
+          <div class="nav-item nav-sub" data-panel="stream_ibps" onclick="showPanel('stream_ibps')">
+            IBPS
+          </div>
+          <div class="nav-item nav-sub" data-panel="stream_docusign" onclick="showPanel('stream_docusign')">
+            DocuSign
+          </div>
+          <div class="nav-item nav-sub" data-panel="stream_ai" onclick="showPanel('stream_ai')">
+            AI
+          </div>
+        </div>
+      </div>
+
       <div class="sidenav-section">
         <div class="sidenav-section-label">Content</div>
         <div class="nav-item" data-panel="landing" onclick="showPanel('landing')">
           Landing page
-          <span class="draft-dot" style="display:none" data-draft="landing">●</span>
+          <span class="draft-dot" style="display:none" data-draft="landing"></span>
         </div>
         <div class="nav-item" data-panel="reastory" onclick="showPanel('reastory')">
            REA Story
-          <span class="draft-dot" style="display:none" data-draft="reastory">●</span>
+          <span class="draft-dot" style="display:none" data-draft="reastory"></span>
         </div>
         <div class="nav-item" data-panel="portfolio" onclick="showPanel('portfolio')">
-          Innovations Delivered
-          <span class="draft-dot" style="display:none" data-draft="portfolio">●</span>
+          Innovation Gallery
+          <span class="draft-dot" style="display:none" data-draft="portfolio"></span>
         </div>
         <div class="nav-item" data-panel="spotlight" onclick="showPanel('spotlight')">
-          Testimonials
-          <span class="draft-dot" style="display:none" data-draft="spotlight">●</span>
+          Spotlight
+          <span class="draft-dot" style="display:none" data-draft="spotlight"></span>
         </div>
         <div class="nav-item" data-panel="whatsnew" onclick="showPanel('whatsnew')">
           What's New
-          <span class="draft-dot" style="display:none" data-draft="whatsnew">●</span>
+          <span class="draft-dot" style="display:none" data-draft="whatsnew"></span>
         </div>
         <div class="nav-item" data-panel="media" onclick="showPanel('media')">
           Media library
         </div>
       </div>
+
+      <!-- <div class="sidenav-footer">
+        <div class="status-dot"></div>
+        Connected to Cosmos DB
+      </div> -->
     </nav>
 
     <!-- MAIN AREA -->
     <div class="main" id="mainArea"></div>
+
+  </div>
+
+  <!-- DRAWER OVERLAY -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer(event)">
+    <div class="drawer" id="drawer">
+      <div class="drawer-header">
+        <div>
+          <h3 id="drawerTitle">Edit initiative</h3>
+          <p id="drawerSub">Make changes below</p>
+        </div>
+        <button class="close-btn" onclick="closeDrawer()">✕</button>
+      </div>
+      <div class="drawer-body" id="drawerBody"></div>
+      <div class="drawer-footer">
+        <button class="btn btn-danger btn-sm" id="drawerDelete">Delete</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="closeDrawer()">Cancel</button>
+          <button class="btn btn-primary btn-sm" onclick="saveDrawer()">Save</button>
+        </div>
+      </div>
+    </div>
   </div>
   <script src="/js/main.js"></script>
   <script src="/js/content-store.js"></script>
