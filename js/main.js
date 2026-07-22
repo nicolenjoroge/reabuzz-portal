@@ -34,7 +34,7 @@ function setRole(role) {
 // ===== ROUTING =====
 function showPanel(panel) {
   if (panel.startsWith("stream_") && currentRole !== "bpm") {
-    renderAccessDenied();
+    
     return;
   }
   currentPanel = panel;
@@ -65,7 +65,7 @@ function render() {
       renderMedia();
       break;
     default:
-      renderStream("landing");
+      renderLanding();
   }
 }
 
@@ -617,22 +617,7 @@ function closeDrawer(e) {
   window._editingType = null;
 }
 
-// ===== ACCESS DENIED =====
-function renderAccessDenied() {
-  document.getElementById("mainArea").innerHTML =
-    '<div class="access-denied"><div class="ad-icon">🔒</div>' +
-    "<h3>Dashboard access is restricted to BPM users</h3>" +
-    "<p>Switch to a BPM account to manage initiative data and metrics.</p></div>";
-}
 
-// ===== DASHBOARD NAV TOGGLE =====
-function toggleDashboardNav() {
-  var el = document.getElementById("dashNavItems");
-  var arrow = document.getElementById("dashNavArrow");
-  var collapsed = el.style.display === "none";
-  el.style.display = collapsed ? "" : "none";
-  arrow.style.transform = collapsed ? "" : "rotate(-90deg)";
-}
 
 // ===== TOAST =====
 function showToast(msg, type) {
