@@ -264,18 +264,33 @@
   // Public: discard — reload draft from Flask
   // -------------------------------------------------------------------------
 
-  function discard() {
-    _req("GET", "/draft")
-      .then(function (data) {
-        _draft = data;
-        _label("Reverted to last saved");
-        _toast("Draft discarded.", "info");
-        if (window.render) window.render();
-      })
-      .catch(function (e) {
-        _toast("Could not reload draft: " + e.message, "danger");
+function discard() {
+  // Get current live version from manifest
+  _req('GET', '/versions')
+    .then(function (manifest) {
+      if (!manifest || !manifest.liveVersion) {
+        _toast('Nothing published yet — cannot discard.', 'info');
+        return;
+      }
+      var liveVersion = 'v' + manifest.liveVersion;
+
+      // Rollback draft to live version but DON'T update liveVersion in manifest
+      return _req('POST', '/discard', { version: liveVersion });
+    })
+    .then(function (data) {
+      if (!data) return;
+      _draft = data;
+      _label('Reverted to last published');
+      _toast('Draft discarded \u2014 reverted to last published version.', 'info');
+      document.querySelectorAll('.draft-dot').forEach(function (dot) {
+        dot.style.display = 'none';
       });
-  }
+      if (window.render) window.render();
+    })
+    .catch(function (e) {
+      _toast('Could not discard: ' + e.message, 'danger');
+    });
+}
 
   // -------------------------------------------------------------------------
   // Public: rollback
