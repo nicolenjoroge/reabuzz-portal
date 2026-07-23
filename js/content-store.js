@@ -225,13 +225,14 @@
   // -------------------------------------------------------------------------
 
   function mediaUrl(path) {
-    if (!path || !_media) return "";
-    // Strip the leading "media/" prefix — the container is already in baseUrl
-    var stripped = path.replace(/^media\//, "");
-    // Encode each path segment but preserve the slashes
-    var encoded = stripped.split("/").map(encodeURIComponent).join("/");
-    return _media.baseUrl + "/" + encoded + "?" + _media.sas;
-  }
+  if (!path) return "";
+  // Strip the leading "media/" prefix (same as before)
+  var stripped = path.replace(/^media\//, "");
+  // Encode each segment but preserve slashes (same as before)
+  var encoded = stripped.split("/").map(encodeURIComponent).join("/");
+  // Route through the backend proxy instead of building an Azure URL
+  return "/api/media/file/" + encoded;
+}
 
   // -------------------------------------------------------------------------
   // Public: publish
@@ -473,12 +474,12 @@
     _patch();
 
     // 1. Fetch media config so CS.mediaUrl() works immediately
-    fetch(API + "/media-url")
+    fetch(API + "/media/list")
       .then(function (r) {
         return r.json();
       })
       .then(function (data) {
-        _media = data;
+        _media = data.blobs;
       })
       .catch(function (e) {
         console.warn("CS: could not load media config —", e.message);
