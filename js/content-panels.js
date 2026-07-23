@@ -1879,20 +1879,20 @@
     CS.appendFooter();
 
     // Wire image pickers
-    _wireDrawerPicker(
+    _wirePickers(
       "btn_prev_mile",
       "campaigns.milestone.image",
       "prev_mile",
       "image",
     );
-    _wireDrawerPicker(
+    _wirePickers(
       "btn_prev_exit",
       "campaigns.exitBanner.image",
       "prev_exit",
       "image",
     );
     teasers.forEach(function (t, i) {
-      _wireDrawerPicker(
+      _wirePickers(
         "btn_prev_teaser_" + i,
         "campaigns.teasers." + i + ".image",
         "prev_teaser_" + i,
@@ -1976,7 +1976,7 @@
           });
         });
     } else {
-      _wireDrawerPicker(
+      _wirePickers(
         "btn_prev_poster",
         "campaigns.posters." + key + ".image",
         "prev_poster",
