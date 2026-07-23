@@ -170,6 +170,7 @@
       innovation: "portfolio",
       spotlight: "spotlight",
       whatsNew: "whatsnew",
+      campaigns:  'campaigns',
     };
     var section = path.split(".")[0];
     if (window.markDraft && sectionMap[section]) {

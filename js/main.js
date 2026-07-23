@@ -9,7 +9,6 @@ var API_BASE =
     ? "http://localhost:5000/api"
     : "https://rea-buzz-api-layers-fkbra6a3dmahckh0.southafricanorth-01.azurewebsites.net/api";
 
-
 // ===== ROLE MANAGEMENT =====
 function setRole(role) {
   currentRole = role;
@@ -34,7 +33,6 @@ function setRole(role) {
 // ===== ROUTING =====
 function showPanel(panel) {
   if (panel.startsWith("stream_") && currentRole !== "bpm") {
-    
     return;
   }
   currentPanel = panel;
@@ -60,6 +58,9 @@ function render() {
       break;
     case "whatsnew":
       renderWhatsNew();
+      break;
+    case "campaigns":
+      renderCampaigns();
       break;
     case "media":
       renderMedia();
@@ -110,7 +111,6 @@ function clearDraft(section) {
   var dot = document.querySelector('[data-draft="' + section + '"]');
   if (dot) dot.style.display = "none";
 }
-
 
 // Content panel drawers override saveDrawer in content-panels.js
 
@@ -482,34 +482,45 @@ function openMediaPicker(type, callback) {
   });
 
   // Upload button
-  document.getElementById('pickerUploadBtn').addEventListener('click', function () {
-  var input    = document.createElement('input');
-  input.type   = 'file';
-  input.accept = _pickerType === 'video' ? 'video/mp4,video/quicktime' : 'image/*';
-  input.onchange = function () {
-    if (!this.files.length) return;
-    var file = this.files[0];
-    var list = document.getElementById('pickerList');
-    if (list) list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--txt2);">Uploading ' + file.name + '…</div>';
+  document
+    .getElementById("pickerUploadBtn")
+    .addEventListener("click", function () {
+      var input = document.createElement("input");
+      input.type = "file";
+      input.accept =
+        _pickerType === "video" ? "video/mp4,video/quicktime" : "image/*";
+      input.onchange = function () {
+        if (!this.files.length) return;
+        var file = this.files[0];
+        var list = document.getElementById("pickerList");
+        if (list)
+          list.innerHTML =
+            '<div style="padding:24px;text-align:center;color:var(--txt2);">Uploading ' +
+            file.name +
+            "…</div>";
 
-    uploadBlob(file,
-      null,  // no progress bar in picker
-      function (blobPath) {
-        // success — select the uploaded file immediately
-        var cb = _pickerCallback;
-        _pickerCallback = null;
-        closeMediaPicker();
-        if (cb) cb(blobUrl(blobPath), blobPath);
-        showToast('Uploaded and selected: ' + blobPath + ' \u2713', 'success');
-      },
-      function (err) {
-        showToast('Upload failed: ' + err, 'danger');
-        _renderPickerList('');
-      }
-    );
-  };
-  input.click();
-});
+        uploadBlob(
+          file,
+          null, // no progress bar in picker
+          function (blobPath) {
+            // success — select the uploaded file immediately
+            var cb = _pickerCallback;
+            _pickerCallback = null;
+            closeMediaPicker();
+            if (cb) cb(blobUrl(blobPath), blobPath);
+            showToast(
+              "Uploaded and selected: " + blobPath + " \u2713",
+              "success",
+            );
+          },
+          function (err) {
+            showToast("Upload failed: " + err, "danger");
+            _renderPickerList("");
+          },
+        );
+      };
+      input.click();
+    });
 
   // Render list — load if needed
   if (mediaReady) {
@@ -616,8 +627,6 @@ function closeDrawer(e) {
   document.getElementById("drawerDelete").style.display = "";
   window._editingType = null;
 }
-
-
 
 // ===== TOAST =====
 function showToast(msg, type) {

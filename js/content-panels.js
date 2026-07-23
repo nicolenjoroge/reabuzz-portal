@@ -271,6 +271,137 @@
 
   var _drawerSave = null;
 
+  window._onFeaturedChange = function (refId) {
+    CS.update("landing.featuredInitiative.refId", refId);
+    if (!refId) return;
+
+    var d = CS.get();
+    var items =
+      (d.innovation &&
+        d.innovation.topInitiatives &&
+        d.innovation.topInitiatives.items) ||
+      [];
+    var item = items.find(function (it) {
+      return it.id === refId;
+    });
+    if (!item) return;
+
+    var story = item.story || {};
+    var hasStory = story.heading && story.body;
+
+    if (!hasStory) {
+      // Story is incomplete — open drawer immediately
+      if (
+        confirm(
+          '"' +
+            item.title +
+            '" has no story content yet.\n\n' +
+            "Would you like to fill in the story now? " +
+            "The story appears when visitors click this initiative on the live site.",
+        )
+      ) {
+        _openFeaturedStoryDrawer(item, items.indexOf(item));
+      } else {
+        showToast("Remember to add the story before publishing.", "info");
+      }
+    } else {
+      showToast("Featured initiative set \u2713", "success");
+      _checkFeaturedStory(refId);
+    }
+  };
+
+  window._checkFeaturedStory = function (refId) {
+    var d = CS.get();
+    var items =
+      (d.innovation &&
+        d.innovation.topInitiatives &&
+        d.innovation.topInitiatives.items) ||
+      [];
+    var item = items.find(function (it) {
+      return it.id === refId;
+    });
+    var el = document.getElementById("feat_story_status");
+    if (!el || !item) return;
+
+    var story = item.story || {};
+    var hasStory = story.heading && story.body;
+
+    el.innerHTML = hasStory
+      ? '<span style="color:#1a8a5a;">\u2713 Story complete</span> &nbsp;' +
+        '<button class="btn btn-ghost btn-sm" onclick="_openFeaturedStoryDrawer(null, null, \'' +
+        refId +
+        "')\">Review story</button>"
+      : '<span style="color:#c0392b;">\u26a0 No story yet</span> &nbsp;' +
+        '<button class="btn btn-primary btn-sm" onclick="_openFeaturedStoryDrawer(null, null, \'' +
+        refId +
+        "')\">Add story now</button>";
+  };
+
+  window._openFeaturedStoryDrawer = function (item, idx, refId) {
+    // Accept either a direct item or a refId lookup
+    var d = CS.get();
+    var items =
+      (d.innovation &&
+        d.innovation.topInitiatives &&
+        d.innovation.topInitiatives.items) ||
+      [];
+
+    if (!item && refId) {
+      item = items.find(function (it) {
+        return it.id === refId;
+      });
+      idx = items.indexOf(item);
+    }
+    if (!item) return;
+
+    var story = item.story || {};
+    var base = "innovation.topInitiatives.items." + idx + ".story";
+
+    document.getElementById("drawerTitle").textContent =
+      "Featured story \u2014 " + item.title;
+    document.getElementById("drawerSub").textContent =
+      "innovation.topInitiatives.items." + idx + ".story";
+    document.getElementById("drawerDelete").style.display = "none";
+    document.getElementById("drawerBody").innerHTML =
+      '<div style="background:#fff8e1;border:1px solid #f0c040;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;">' +
+      "\u26a0\ufe0f This story appears when visitors click the featured initiative card on the live site. " +
+      "Make sure it's compelling before publishing." +
+      "</div>" +
+      '<div class="form-grid" style="grid-template-columns:1fr;gap:12px;">' +
+      field(
+        "Eyebrow tag",
+        input(base + ".eyebrow", story.eyebrow, "e.g. Innovation"),
+      ) +
+      field("Story heading", input(base + ".heading", story.heading)) +
+      '<div class="field"><label>Story body</label>' +
+      textarea(base + ".body", story.body, 6) +
+      "</div>" +
+      field(
+        "Closing line",
+        input(base + ".closing.line", story.closing && story.closing.line),
+      ) +
+      '<div class="field"><label>Closing body</label>' +
+      textarea(base + ".closing.body", story.closing && story.closing.body, 3) +
+      "</div>" +
+      imagePicker(base + ".__heroImage", story.__heroImage, "prev_feat_story") +
+      "</div>";
+
+    document.getElementById("drawerOverlay").className = "drawer-overlay open";
+
+    _wirePickers(
+      "btn_prev_feat_story",
+      base + ".__heroImage",
+      "prev_feat_story",
+      "image",
+    );
+
+    _drawerSave = function () {
+      showToast("Story saved \u2713", "success");
+      closeDrawer();
+      _checkFeaturedStory(item.id);
+    };
+  };
+
   // -------------------------------------------------------------------------
   // LANDING PAGE
   //
@@ -431,11 +562,15 @@
         "landing.featuredInitiative.refId",
         field(
           "Initiative",
-          "<select onchange=\"CS.update('landing.featuredInitiative.refId', this.value)\">" +
+          '<select id="feat_sel" onchange="_onFeaturedChange(this.value)">' +
+            '<option value="">— select —</option>' +
             initOpts +
             "</select>",
           "Editorially chosen \u2014 not date-driven.",
-        ),
+        ) +
+          (featRef
+            ? '<div id="feat_story_status" style="margin-top:8px;font-size:12px;"></div>'
+            : ""),
       ) +
       card(
         "Video shelf",
@@ -460,6 +595,11 @@
       "</div>";
 
     CS.appendFooter();
+
+    // Show story completeness for current featured initiative
+    if (featRef) {
+      _checkFeaturedStory(featRef);
+    }
 
     // Wire storyhub add button
     var addBtn = document.getElementById("storyhub_add_btn");
@@ -964,7 +1104,6 @@
       '<div class="field" style="grid-column:span 2"><label>Story — body</label>' +
       textarea(base + ".story.body", story.body, 6) +
       "</div>" +
-      
       //change
       field(
         "Story — closing line",
@@ -1613,3 +1752,167 @@
     window.renderWhatsNew();
   };
 })(window);
+
+window.renderCampaigns = function () {
+  var d = CS.get();
+  if (!d) { noData(); return; }
+
+  var camp    = d.campaigns      || {};
+  var mile    = camp.milestone   || {};
+  var teasers = camp.teasers     || [];
+  var exit    = camp.exitBanner  || {};
+  var posters = camp.posters     || {};
+
+  // Teaser rows
+  var teaserRows = teasers.map(function (t, i) {
+    var base = 'campaigns.teasers.' + i;
+    return '<div class="section-card" style="margin-bottom:12px;">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
+        '<span class="pill pill-deployed" style="font-size:10px;">' + e(t.triggerSection) + '</span>' +
+        '<button class="btn btn-danger btn-sm" style="margin-left:auto" ' +
+          'onclick="CS.removeItem(\'campaigns.teasers\',' + i + ');window.renderCampaigns()">Remove</button>' +
+      '</div>' +
+      '<div class="form-grid" style="grid-template-columns:1fr 1fr;gap:10px;">' +
+        field('Trigger section', input(base + '.triggerSection', t.triggerSection, 'e.g. sec-reastory')) +
+        field('Label',           input(base + '.label',          t.label)) +
+        '<div class="field" style="grid-column:span 2">' +
+          field('Text', textarea(base + '.text', t.text, 2)) +
+        '</div>' +
+        field('CTA href',  input(base + '.ctaHref',  t.ctaHref)) +
+        field('CTA label', input(base + '.ctaLabel', t.ctaLabel)) +
+        imagePicker(base + '.image', t.image, 'prev_teaser_' + i) +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  // Poster rows
+  var posterKeys = Object.keys(posters);
+  var posterRows = posterKeys.map(function (key) {
+    var p    = posters[key];
+    var base = 'campaigns.posters.' + key;
+    return listRow(
+      '<strong>' + e(key) + '</strong>',
+      e(p.caption),
+      '<button class="btn btn-ghost btn-sm" onclick="_campaignPosterDrawer(\'' + key + '\')">Edit</button>' +
+      '<button class="btn btn-ghost btn-sm btn-icon" onclick="CS.update(\'campaigns.posters.' + key + '\', undefined);window.renderCampaigns()">&#x2715;</button>'
+    );
+  }).join('');
+
+  document.getElementById('mainArea').innerHTML =
+    header('Campaigns', 'Milestone toast, section teasers, exit banner, and contextual posters.', toolbar('campaigns')) +
+    '<div class="panel-body">' +
+
+    card('Milestone toast', 'campaigns.milestone — fires after the spotlight section',
+      '<div class="form-grid" style="grid-template-columns:1fr 1fr;gap:14px;">' +
+        field('Title', input('campaigns.milestone.title', mile.title)) +
+        field('Trigger section', input('campaigns.milestone.section', mile.section, 'e.g. sec-spotlight')) +
+        '<div class="field" style="grid-column:span 2">' +
+          field('Body', textarea('campaigns.milestone.body', mile.body, 2)) +
+        '</div>' +
+        imagePicker('campaigns.milestone.image', mile.image, 'prev_mile') +
+      '</div>'
+    ) +
+
+    card('Section teasers', 'campaigns.teasers — slide-in cards triggered by scroll',
+      teaserRows +
+      '<button class="add-btn" onclick="_addCampaignTeaser()">+ Add teaser</button>'
+    ) +
+
+    card('Exit banner', 'campaigns.exitBanner — bottom bar on exit intent',
+      '<div class="form-grid" style="grid-template-columns:1fr 1fr;gap:14px;">' +
+        field('Headline', input('campaigns.exitBanner.headline', exit.headline)) +
+        field('Sub text', input('campaigns.exitBanner.sub',      exit.sub)) +
+        field('CTA label', input('campaigns.exitBanner.ctaLabel', exit.ctaLabel)) +
+        imagePicker('campaigns.exitBanner.image', exit.image, 'prev_exit') +
+      '</div>'
+    ) +
+
+    card('Contextual posters', 'campaigns.posters — keyed by initiative id (data-campaign-poster attribute)',
+      posterRows +
+      '<button class="add-btn" onclick="_campaignPosterDrawer(null)">+ Add poster</button>'
+    ) +
+
+    '</div>';
+
+  CS.appendFooter();
+
+  // Wire image pickers
+  _wireDrawerPicker('btn_prev_mile', 'campaigns.milestone.image', 'prev_mile', 'image');
+  _wireDrawerPicker('btn_prev_exit', 'campaigns.exitBanner.image', 'prev_exit', 'image');
+  teasers.forEach(function (t, i) {
+    _wireDrawerPicker('btn_prev_teaser_' + i, 'campaigns.teasers.' + i + '.image', 'prev_teaser_' + i, 'image');
+  });
+};
+
+window._addCampaignTeaser = function () {
+  CS.addItem('campaigns.teasers', {
+    triggerSection: '',
+    image:          '',
+    label:          '',
+    text:           '',
+    ctaHref:        '',
+    ctaLabel:       '',
+  });
+  window.renderCampaigns();
+};
+
+window._campaignPosterDrawer = function (key) {
+  var d       = CS.get();
+  var posters = (d.campaigns && d.campaigns.posters) || {};
+  var isNew   = !key;
+  var p       = isNew ? { image: '', caption: '' } : (posters[key] || {});
+
+  document.getElementById('drawerTitle').textContent    = isNew ? 'Add poster' : 'Edit poster — ' + key;
+  document.getElementById('drawerSub').textContent      = isNew ? '' : key;
+  document.getElementById('drawerDelete').style.display = isNew ? 'none' : '';
+  document.getElementById('drawerDelete').onclick = function () {
+    // Remove by setting to undefined then cleaning up
+    var draft = CS.get();
+    if (draft.campaigns && draft.campaigns.posters) {
+      delete draft.campaigns.posters[key];
+    }
+    closeDrawer();
+    window.renderCampaigns();
+  };
+
+  document.getElementById('drawerBody').innerHTML =
+    '<div class="form-grid" style="grid-template-columns:1fr;gap:12px;">' +
+      (isNew ? field('Initiative ID (e.g. initiative-001)', '<input id="poster_key">') : '') +
+      field('Caption', '<textarea id="poster_caption" rows="2">' + e(p.caption) + '</textarea>') +
+      imagePicker(isNew ? '__temp__' : 'campaigns.posters.' + key + '.image', p.image, 'prev_poster') +
+    '</div>';
+
+  document.getElementById('drawerOverlay').className = 'drawer-overlay open';
+
+  var tempImage = isNew ? '' : p.image;
+
+  if (isNew) {
+    var btn = document.getElementById('btn_prev_poster');
+    if (btn) btn.addEventListener('click', function () {
+      openMediaPicker('image', function (url, name) {
+        var path = name.startsWith('media/') ? name : 'media/' + name;
+        tempImage = path;
+        var lbl = document.getElementById('prev_poster_path');
+        var img = document.getElementById('prev_poster');
+        if (lbl) lbl.textContent = path;
+        if (img) { img.src = CS.mediaUrl(path); img.style.display = ''; }
+      });
+    });
+  } else {
+    _wireDrawerPicker('btn_prev_poster', 'campaigns.posters.' + key + '.image', 'prev_poster', 'image');
+  }
+
+  _drawerSave = function () {
+    var caption = document.getElementById('poster_caption').value;
+    if (isNew) {
+      var newKey = document.getElementById('poster_key').value.trim();
+      if (!newKey) { showToast('Please enter an initiative ID', 'danger'); return; }
+      CS.update('campaigns.posters.' + newKey + '.image',   tempImage);
+      CS.update('campaigns.posters.' + newKey + '.caption', caption);
+    } else {
+      CS.update('campaigns.posters.' + key + '.caption', caption);
+    }
+    closeDrawer();
+    window.renderCampaigns();
+  };
+};
