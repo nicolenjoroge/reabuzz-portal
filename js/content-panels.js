@@ -1751,168 +1751,254 @@
     });
     window.renderWhatsNew();
   };
-})(window);
+  window.renderCampaigns = function () {
+    var d = CS.get();
+    if (!d) {
+      noData();
+      return;
+    }
 
-window.renderCampaigns = function () {
-  var d = CS.get();
-  if (!d) { noData(); return; }
+    var camp = d.campaigns || {};
+    var mile = camp.milestone || {};
+    var teasers = camp.teasers || [];
+    var exit = camp.exitBanner || {};
+    var posters = camp.posters || {};
 
-  var camp    = d.campaigns      || {};
-  var mile    = camp.milestone   || {};
-  var teasers = camp.teasers     || [];
-  var exit    = camp.exitBanner  || {};
-  var posters = camp.posters     || {};
+    // Teaser rows
+    var teaserRows = teasers
+      .map(function (t, i) {
+        var base = "campaigns.teasers." + i;
+        return (
+          '<div class="section-card" style="margin-bottom:12px;">' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
+          '<span class="pill pill-deployed" style="font-size:10px;">' +
+          e(t.triggerSection) +
+          "</span>" +
+          '<button class="btn btn-danger btn-sm" style="margin-left:auto" ' +
+          "onclick=\"CS.removeItem('campaigns.teasers'," +
+          i +
+          ');window.renderCampaigns()">Remove</button>' +
+          "</div>" +
+          '<div class="form-grid" style="grid-template-columns:1fr 1fr;gap:10px;">' +
+          field(
+            "Trigger section",
+            input(
+              base + ".triggerSection",
+              t.triggerSection,
+              "e.g. sec-reastory",
+            ),
+          ) +
+          field("Label", input(base + ".label", t.label)) +
+          '<div class="field" style="grid-column:span 2">' +
+          field("Text", textarea(base + ".text", t.text, 2)) +
+          "</div>" +
+          field("CTA href", input(base + ".ctaHref", t.ctaHref)) +
+          field("CTA label", input(base + ".ctaLabel", t.ctaLabel)) +
+          imagePicker(base + ".image", t.image, "prev_teaser_" + i) +
+          "</div>" +
+          "</div>"
+        );
+      })
+      .join("");
 
-  // Teaser rows
-  var teaserRows = teasers.map(function (t, i) {
-    var base = 'campaigns.teasers.' + i;
-    return '<div class="section-card" style="margin-bottom:12px;">' +
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
-        '<span class="pill pill-deployed" style="font-size:10px;">' + e(t.triggerSection) + '</span>' +
-        '<button class="btn btn-danger btn-sm" style="margin-left:auto" ' +
-          'onclick="CS.removeItem(\'campaigns.teasers\',' + i + ');window.renderCampaigns()">Remove</button>' +
-      '</div>' +
-      '<div class="form-grid" style="grid-template-columns:1fr 1fr;gap:10px;">' +
-        field('Trigger section', input(base + '.triggerSection', t.triggerSection, 'e.g. sec-reastory')) +
-        field('Label',           input(base + '.label',          t.label)) +
-        '<div class="field" style="grid-column:span 2">' +
-          field('Text', textarea(base + '.text', t.text, 2)) +
-        '</div>' +
-        field('CTA href',  input(base + '.ctaHref',  t.ctaHref)) +
-        field('CTA label', input(base + '.ctaLabel', t.ctaLabel)) +
-        imagePicker(base + '.image', t.image, 'prev_teaser_' + i) +
-      '</div>' +
-    '</div>';
-  }).join('');
+    // Poster rows
+    var posterKeys = Object.keys(posters);
+    var posterRows = posterKeys
+      .map(function (key) {
+        var p = posters[key];
+        var base = "campaigns.posters." + key;
+        return listRow(
+          "<strong>" + e(key) + "</strong>",
+          e(p.caption),
+          '<button class="btn btn-ghost btn-sm" onclick="_campaignPosterDrawer(\'' +
+            key +
+            "')\">Edit</button>" +
+            '<button class="btn btn-ghost btn-sm btn-icon" onclick="CS.update(\'campaigns.posters.' +
+            key +
+            "', undefined);window.renderCampaigns()\">&#x2715;</button>",
+        );
+      })
+      .join("");
 
-  // Poster rows
-  var posterKeys = Object.keys(posters);
-  var posterRows = posterKeys.map(function (key) {
-    var p    = posters[key];
-    var base = 'campaigns.posters.' + key;
-    return listRow(
-      '<strong>' + e(key) + '</strong>',
-      e(p.caption),
-      '<button class="btn btn-ghost btn-sm" onclick="_campaignPosterDrawer(\'' + key + '\')">Edit</button>' +
-      '<button class="btn btn-ghost btn-sm btn-icon" onclick="CS.update(\'campaigns.posters.' + key + '\', undefined);window.renderCampaigns()">&#x2715;</button>'
+    document.getElementById("mainArea").innerHTML =
+      header(
+        "Campaigns",
+        "Milestone toast, section teasers, exit banner, and contextual posters.",
+        toolbar("campaigns"),
+      ) +
+      '<div class="panel-body">' +
+      card(
+        "Milestone toast",
+        "campaigns.milestone — fires after the spotlight section",
+        '<div class="form-grid" style="grid-template-columns:1fr 1fr;gap:14px;">' +
+          field("Title", input("campaigns.milestone.title", mile.title)) +
+          field(
+            "Trigger section",
+            input(
+              "campaigns.milestone.section",
+              mile.section,
+              "e.g. sec-spotlight",
+            ),
+          ) +
+          '<div class="field" style="grid-column:span 2">' +
+          field("Body", textarea("campaigns.milestone.body", mile.body, 2)) +
+          "</div>" +
+          imagePicker("campaigns.milestone.image", mile.image, "prev_mile") +
+          "</div>",
+      ) +
+      card(
+        "Section teasers",
+        "campaigns.teasers — slide-in cards triggered by scroll",
+        teaserRows +
+          '<button class="add-btn" onclick="_addCampaignTeaser()">+ Add teaser</button>',
+      ) +
+      card(
+        "Exit banner",
+        "campaigns.exitBanner — bottom bar on exit intent",
+        '<div class="form-grid" style="grid-template-columns:1fr 1fr;gap:14px;">' +
+          field(
+            "Headline",
+            input("campaigns.exitBanner.headline", exit.headline),
+          ) +
+          field("Sub text", input("campaigns.exitBanner.sub", exit.sub)) +
+          field(
+            "CTA label",
+            input("campaigns.exitBanner.ctaLabel", exit.ctaLabel),
+          ) +
+          imagePicker("campaigns.exitBanner.image", exit.image, "prev_exit") +
+          "</div>",
+      ) +
+      card(
+        "Contextual posters",
+        "campaigns.posters — keyed by initiative id (data-campaign-poster attribute)",
+        posterRows +
+          '<button class="add-btn" onclick="_campaignPosterDrawer(null)">+ Add poster</button>',
+      ) +
+      "</div>";
+
+    CS.appendFooter();
+
+    // Wire image pickers
+    _wireDrawerPicker(
+      "btn_prev_mile",
+      "campaigns.milestone.image",
+      "prev_mile",
+      "image",
     );
-  }).join('');
-
-  document.getElementById('mainArea').innerHTML =
-    header('Campaigns', 'Milestone toast, section teasers, exit banner, and contextual posters.', toolbar('campaigns')) +
-    '<div class="panel-body">' +
-
-    card('Milestone toast', 'campaigns.milestone — fires after the spotlight section',
-      '<div class="form-grid" style="grid-template-columns:1fr 1fr;gap:14px;">' +
-        field('Title', input('campaigns.milestone.title', mile.title)) +
-        field('Trigger section', input('campaigns.milestone.section', mile.section, 'e.g. sec-spotlight')) +
-        '<div class="field" style="grid-column:span 2">' +
-          field('Body', textarea('campaigns.milestone.body', mile.body, 2)) +
-        '</div>' +
-        imagePicker('campaigns.milestone.image', mile.image, 'prev_mile') +
-      '</div>'
-    ) +
-
-    card('Section teasers', 'campaigns.teasers — slide-in cards triggered by scroll',
-      teaserRows +
-      '<button class="add-btn" onclick="_addCampaignTeaser()">+ Add teaser</button>'
-    ) +
-
-    card('Exit banner', 'campaigns.exitBanner — bottom bar on exit intent',
-      '<div class="form-grid" style="grid-template-columns:1fr 1fr;gap:14px;">' +
-        field('Headline', input('campaigns.exitBanner.headline', exit.headline)) +
-        field('Sub text', input('campaigns.exitBanner.sub',      exit.sub)) +
-        field('CTA label', input('campaigns.exitBanner.ctaLabel', exit.ctaLabel)) +
-        imagePicker('campaigns.exitBanner.image', exit.image, 'prev_exit') +
-      '</div>'
-    ) +
-
-    card('Contextual posters', 'campaigns.posters — keyed by initiative id (data-campaign-poster attribute)',
-      posterRows +
-      '<button class="add-btn" onclick="_campaignPosterDrawer(null)">+ Add poster</button>'
-    ) +
-
-    '</div>';
-
-  CS.appendFooter();
-
-  // Wire image pickers
-  _wireDrawerPicker('btn_prev_mile', 'campaigns.milestone.image', 'prev_mile', 'image');
-  _wireDrawerPicker('btn_prev_exit', 'campaigns.exitBanner.image', 'prev_exit', 'image');
-  teasers.forEach(function (t, i) {
-    _wireDrawerPicker('btn_prev_teaser_' + i, 'campaigns.teasers.' + i + '.image', 'prev_teaser_' + i, 'image');
-  });
-};
-
-window._addCampaignTeaser = function () {
-  CS.addItem('campaigns.teasers', {
-    triggerSection: '',
-    image:          '',
-    label:          '',
-    text:           '',
-    ctaHref:        '',
-    ctaLabel:       '',
-  });
-  window.renderCampaigns();
-};
-
-window._campaignPosterDrawer = function (key) {
-  var d       = CS.get();
-  var posters = (d.campaigns && d.campaigns.posters) || {};
-  var isNew   = !key;
-  var p       = isNew ? { image: '', caption: '' } : (posters[key] || {});
-
-  document.getElementById('drawerTitle').textContent    = isNew ? 'Add poster' : 'Edit poster — ' + key;
-  document.getElementById('drawerSub').textContent      = isNew ? '' : key;
-  document.getElementById('drawerDelete').style.display = isNew ? 'none' : '';
-  document.getElementById('drawerDelete').onclick = function () {
-    // Remove by setting to undefined then cleaning up
-    var draft = CS.get();
-    if (draft.campaigns && draft.campaigns.posters) {
-      delete draft.campaigns.posters[key];
-    }
-    closeDrawer();
-    window.renderCampaigns();
-  };
-
-  document.getElementById('drawerBody').innerHTML =
-    '<div class="form-grid" style="grid-template-columns:1fr;gap:12px;">' +
-      (isNew ? field('Initiative ID (e.g. initiative-001)', '<input id="poster_key">') : '') +
-      field('Caption', '<textarea id="poster_caption" rows="2">' + e(p.caption) + '</textarea>') +
-      imagePicker(isNew ? '__temp__' : 'campaigns.posters.' + key + '.image', p.image, 'prev_poster') +
-    '</div>';
-
-  document.getElementById('drawerOverlay').className = 'drawer-overlay open';
-
-  var tempImage = isNew ? '' : p.image;
-
-  if (isNew) {
-    var btn = document.getElementById('btn_prev_poster');
-    if (btn) btn.addEventListener('click', function () {
-      openMediaPicker('image', function (url, name) {
-        var path = name.startsWith('media/') ? name : 'media/' + name;
-        tempImage = path;
-        var lbl = document.getElementById('prev_poster_path');
-        var img = document.getElementById('prev_poster');
-        if (lbl) lbl.textContent = path;
-        if (img) { img.src = CS.mediaUrl(path); img.style.display = ''; }
-      });
+    _wireDrawerPicker(
+      "btn_prev_exit",
+      "campaigns.exitBanner.image",
+      "prev_exit",
+      "image",
+    );
+    teasers.forEach(function (t, i) {
+      _wireDrawerPicker(
+        "btn_prev_teaser_" + i,
+        "campaigns.teasers." + i + ".image",
+        "prev_teaser_" + i,
+        "image",
+      );
     });
-  } else {
-    _wireDrawerPicker('btn_prev_poster', 'campaigns.posters.' + key + '.image', 'prev_poster', 'image');
-  }
+  };
 
-  _drawerSave = function () {
-    var caption = document.getElementById('poster_caption').value;
-    if (isNew) {
-      var newKey = document.getElementById('poster_key').value.trim();
-      if (!newKey) { showToast('Please enter an initiative ID', 'danger'); return; }
-      CS.update('campaigns.posters.' + newKey + '.image',   tempImage);
-      CS.update('campaigns.posters.' + newKey + '.caption', caption);
-    } else {
-      CS.update('campaigns.posters.' + key + '.caption', caption);
-    }
-    closeDrawer();
+  window._addCampaignTeaser = function () {
+    CS.addItem("campaigns.teasers", {
+      triggerSection: "",
+      image: "",
+      label: "",
+      text: "",
+      ctaHref: "",
+      ctaLabel: "",
+    });
     window.renderCampaigns();
   };
-};
+
+  window._campaignPosterDrawer = function (key) {
+    var d = CS.get();
+    var posters = (d.campaigns && d.campaigns.posters) || {};
+    var isNew = !key;
+    var p = isNew ? { image: "", caption: "" } : posters[key] || {};
+
+    document.getElementById("drawerTitle").textContent = isNew
+      ? "Add poster"
+      : "Edit poster — " + key;
+    document.getElementById("drawerSub").textContent = isNew ? "" : key;
+    document.getElementById("drawerDelete").style.display = isNew ? "none" : "";
+    document.getElementById("drawerDelete").onclick = function () {
+      // Remove by setting to undefined then cleaning up
+      var draft = CS.get();
+      if (draft.campaigns && draft.campaigns.posters) {
+        delete draft.campaigns.posters[key];
+      }
+      closeDrawer();
+      window.renderCampaigns();
+    };
+
+    document.getElementById("drawerBody").innerHTML =
+      '<div class="form-grid" style="grid-template-columns:1fr;gap:12px;">' +
+      (isNew
+        ? field(
+            "Initiative ID (e.g. initiative-001)",
+            '<input id="poster_key">',
+          )
+        : "") +
+      field(
+        "Caption",
+        '<textarea id="poster_caption" rows="2">' +
+          e(p.caption) +
+          "</textarea>",
+      ) +
+      imagePicker(
+        isNew ? "__temp__" : "campaigns.posters." + key + ".image",
+        p.image,
+        "prev_poster",
+      ) +
+      "</div>";
+
+    document.getElementById("drawerOverlay").className = "drawer-overlay open";
+
+    var tempImage = isNew ? "" : p.image;
+
+    if (isNew) {
+      var btn = document.getElementById("btn_prev_poster");
+      if (btn)
+        btn.addEventListener("click", function () {
+          openMediaPicker("image", function (url, name) {
+            var path = name.startsWith("media/") ? name : "media/" + name;
+            tempImage = path;
+            var lbl = document.getElementById("prev_poster_path");
+            var img = document.getElementById("prev_poster");
+            if (lbl) lbl.textContent = path;
+            if (img) {
+              img.src = CS.mediaUrl(path);
+              img.style.display = "";
+            }
+          });
+        });
+    } else {
+      _wireDrawerPicker(
+        "btn_prev_poster",
+        "campaigns.posters." + key + ".image",
+        "prev_poster",
+        "image",
+      );
+    }
+
+    _drawerSave = function () {
+      var caption = document.getElementById("poster_caption").value;
+      if (isNew) {
+        var newKey = document.getElementById("poster_key").value.trim();
+        if (!newKey) {
+          showToast("Please enter an initiative ID", "danger");
+          return;
+        }
+        CS.update("campaigns.posters." + newKey + ".image", tempImage);
+        CS.update("campaigns.posters." + newKey + ".caption", caption);
+      } else {
+        CS.update("campaigns.posters." + key + ".caption", caption);
+      }
+      closeDrawer();
+      window.renderCampaigns();
+    };
+  };
+})(window);
