@@ -112,42 +112,63 @@ function clearDraft(section) {
   if (dot) dot.style.display = "none";
 }
 
-// ===== MEDIA LIBRARY =====
-// All media operations go through the Flask backend proxy.
-// The Azure SAS token never reaches the browser.
+// Content panel drawers override saveDrawer in content-panels.js
 
+// ===== MEDIA LIBRARY =====
+var BLOB_CONFIG = { account: "bpmstoryhub", container: "media", sasToken: "" };
 var mediaItems = [];
 var mediaLoading = false;
 var mediaFilter = { type: "all", search: "" };
 var mediaReady = false;
+// Fetch SAS token from Flask on boot, then pre-load media items
+fetch(API_BASE + "/media-url")
+  .then(function (r) {
+    return r.json();
+  })
+  .then(function (data) {
+    BLOB_CONFIG.sasToken = data.sas;
+    // Pre-load media so the picker is ready before user visits Media Library
+    listBlobs(function () {
+      mediaReady = true;
+      if (window.currentPanel === "media") renderMedia();
+    });
+  })
+  .catch(function (e) {
+    console.warn("media-url fetch failed:", e.message);
+  });
 
-// Pre-load media list on boot so the picker is ready before the user visits Media Library
-listBlobs(function () {
-  mediaReady = true;
-  if (window.currentPanel === "media") renderMedia();
-});
-
-// Returns a proxy URL on our own server — no Azure URL, no SAS token in the browser
 function blobUrl(name) {
-  var encoded = name.split("/").map(encodeURIComponent).join("/");
-  return API_BASE + "/media/file/" + encoded;
+  return (
+    "https://" +
+    BLOB_CONFIG.account +
+    ".blob.core.windows.net/media/" +
+    name.split("/").map(encodeURIComponent).join("/") +
+    "?" +
+    BLOB_CONFIG.sasToken
+  );
 }
 
-// ---------------------------------------------------------------------------
-// List blobs — calls /api/media/list, parses clean JSON (no raw Azure XML)
-// ---------------------------------------------------------------------------
 function listBlobs(callback) {
   mediaLoading = true;
-  fetch(API_BASE + "/media/list")
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-      mediaItems = (data.blobs || []).map(function (b) {
-        return {
-          name:         b.name,
-          size:         b.size,
-          lastModified: b.lastModified,
-          type:         b.contentType && b.contentType.startsWith("video") ? "video" : "image",
-        };
+  fetch(API_BASE + "/media-list")
+    .then(function (r) {
+      return r.text();
+    })
+    .then(function (xml) {
+      var parser = new DOMParser();
+      var doc = parser.parseFromString(xml, "text/xml");
+      mediaItems = [];
+      doc.querySelectorAll("Blob").forEach(function (b) {
+        var name = b.querySelector("Name").textContent;
+        var size = parseInt(b.querySelector("Content-Length").textContent) || 0;
+        var lm = b.querySelector("Last-Modified").textContent;
+        var ct = b.querySelector("Content-Type").textContent;
+        mediaItems.push({
+          name: name,
+          size: size,
+          lastModified: lm.split(" ").slice(1, 4).join(" "),
+          type: ct.startsWith("video") ? "video" : "image",
+        });
       });
       mediaLoading = false;
       if (callback) callback();
@@ -159,63 +180,67 @@ function listBlobs(callback) {
     });
 }
 
-// ---------------------------------------------------------------------------
-// Upload blob — POSTs multipart to /api/media/upload (backend writes to Azure)
-// XHR used instead of fetch so we keep upload progress events
-// ---------------------------------------------------------------------------
 function uploadBlob(file, onProgress, onDone, onError) {
   var cleanName = file.name.replace(/\s+/g, "-");
+  var folder = file.type.startsWith("video") ? "videos" : "Images";
+  var blobPath = folder + "/" + cleanName;
 
-  var formData = new FormData();
-  formData.append("file", file, cleanName);
+  var url =
+    "https://" +
+    BLOB_CONFIG.account +
+    ".blob.core.windows.net/" +
+    BLOB_CONFIG.container +
+    "/" +
+    blobPath.split("/").map(encodeURIComponent).join("/") +
+    "?" +
+    BLOB_CONFIG.sasToken;
 
   var xhr = new XMLHttpRequest();
-
   xhr.upload.onprogress = function (ev) {
     if (ev.lengthComputable && onProgress)
       onProgress(Math.round((ev.loaded / ev.total) * 100));
   };
-
   xhr.onload = function () {
-    if (xhr.status === 200 || xhr.status === 201) {
-      var resp = JSON.parse(xhr.responseText);
+    if (xhr.status === 201 || xhr.status === 200) {
       mediaItems.unshift({
-        name:         resp.name,
-        size:         resp.size,
+        name: blobPath, // store full path e.g. "Images/bpm.png"
+        size: file.size,
         lastModified: new Date().toISOString().split("T")[0],
-        type:         file.type.startsWith("video") ? "video" : "image",
+        type: file.type.startsWith("video") ? "video" : "image",
       });
-      if (onDone) onDone(resp.name);
+      if (onDone) onDone(blobPath);
     } else {
-      if (onError) onError(xhr.statusText || "Upload failed");
+      if (onError) onError(xhr.statusText);
     }
   };
-
   xhr.onerror = function () {
     if (onError) onError("Network error");
   };
-
-  xhr.open("POST", API_BASE + "/media/upload");
-  xhr.send(formData);
+  xhr.open("PUT", url);
+  xhr.setRequestHeader("x-ms-blob-type", "BlockBlob");
+  xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+  xhr.send(file);
 }
 
-// ---------------------------------------------------------------------------
-// Delete blob — DELETEs via /api/media/delete (backend removes from Azure)
-// ---------------------------------------------------------------------------
 function deleteBlob(name, onDone, onError) {
-  fetch(API_BASE + "/media/delete", {
-    method:  "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify({ name: name }),
-  })
+  var url =
+    "https://" +
+    BLOB_CONFIG.account +
+    ".blob.core.windows.net/" +
+    BLOB_CONFIG.container +
+    "/" +
+    encodeURIComponent(name) +
+    "?" +
+    BLOB_CONFIG.sasToken;
+  fetch(url, { method: "DELETE" })
     .then(function (r) {
       if (r.ok) {
-        mediaItems = mediaItems.filter(function (m) { return m.name !== name; });
+        mediaItems = mediaItems.filter(function (m) {
+          return m.name !== name;
+        });
         if (onDone) onDone();
       } else {
-        return r.json().then(function (b) {
-          if (onError) onError((b && b.error) || r.statusText);
-        });
+        if (onError) onError(r.statusText);
       }
     })
     .catch(function (e) {
@@ -349,7 +374,7 @@ function handleFiles(files) {
     "image/jpeg",
     "image/png",
     "image/gif",
-    "image/svg+xml",
+    "image/svg",
     "image/webp",
     "video/mp4",
     "video/quicktime",
@@ -358,13 +383,13 @@ function handleFiles(files) {
     showToast("File type not allowed.", "danger");
     return;
   }
-  if (file.size > 100 * 1024 * 1024) {
-    showToast("File too large (max 100 MB).", "danger");
+  if (file.size > 1000 * 1024 * 1024) {
+    showToast("File too large (max 1GB).", "danger");
     return;
   }
 
-  var prog  = document.getElementById("uploadProgress");
-  var bar   = document.getElementById("uploadProgressBar");
+  var prog = document.getElementById("uploadProgress");
+  var bar = document.getElementById("uploadProgressBar");
   var label = document.getElementById("uploadProgressLabel");
   prog.style.display = "block";
   bar.style.width = "0%";
@@ -388,7 +413,6 @@ function handleFiles(files) {
   );
 }
 
-// Copies the proxy URL (no SAS) to clipboard
 function copyBlobUrl(name) {
   var url = blobUrl(name);
   if (navigator.clipboard) {
@@ -416,9 +440,7 @@ function confirmDeleteBlob(name) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Media picker modal — used by content-panels.js to select images/videos
-// ---------------------------------------------------------------------------
+// Media picker modal — used by content panels to select images/videos
 var _pickerCallback = null;
 var _pickerType = "all";
 
@@ -459,7 +481,7 @@ function openMediaPicker(type, callback) {
     if (e.target === modal) closeMediaPicker();
   });
 
-  // Upload button inside picker
+  // Upload button
   document
     .getElementById("pickerUploadBtn")
     .addEventListener("click", function () {
@@ -486,7 +508,10 @@ function openMediaPicker(type, callback) {
             _pickerCallback = null;
             closeMediaPicker();
             if (cb) cb(blobUrl(blobPath), blobPath);
-            showToast("Uploaded and selected: " + blobPath + " ✓", "success");
+            showToast(
+              "Uploaded and selected: " + blobPath + " \u2713",
+              "success",
+            );
           },
           function (err) {
             showToast("Upload failed: " + err, "danger");
@@ -551,26 +576,48 @@ function _renderPickerList(search) {
     })
     .join("");
 
-  // Wire each item click
+  // Wire each item click directly
   items.forEach(function (m, i) {
     var el = document.getElementById("picker_item_" + i);
     if (!el) return;
     el.addEventListener("click", function () {
-      var url  = blobUrl(m.name);
+      var url = blobUrl(m.name);
       var name = m.name;
-      var cb   = _pickerCallback;
-      _pickerCallback = null;
-      closeMediaPicker();
-      if (cb) cb(url, name);
+      var cb = _pickerCallback; // grab reference first
+      _pickerCallback = null; // clear it
+      closeMediaPicker(); // close modal
+      if (cb) cb(url, name); // fire callback after
     });
-    el.addEventListener("mouseover", function () { this.style.background = "#f5f4f0"; });
-    el.addEventListener("mouseout",  function () { this.style.background = ""; });
+    // Hover effect
+    el.addEventListener("mouseover", function () {
+      this.style.background = "#f5f4f0";
+    });
+    el.addEventListener("mouseout", function () {
+      this.style.background = "";
+    });
   });
 }
 
 function closeMediaPicker() {
   var m = document.getElementById("mediaPickerModal");
   if (m) m.remove();
+  // Don't null _pickerCallback here — handled in click handler
+}
+
+function triggerUploadFromPicker() {
+  var input = document.createElement("input");
+  input.type = "file";
+  input.accept =
+    _pickerType === "video" ? "video/mp4,video/quicktime" : "image/*";
+  input.onchange = function () {
+    if (!this.files.length) return;
+    handleFiles(this.files);
+    setTimeout(function () {
+      var s = document.getElementById("pickerSearch");
+      renderPickerGrid(s ? s.value : "");
+    }, 2000);
+  };
+  input.click();
 }
 
 // ===== DRAWER =====
@@ -596,7 +643,9 @@ function showToast(msg, type) {
     "color:#fff;font-size:13px;font-weight:bold;padding:10px 20px;border-radius:10px;z-index:9999;box-shadow:0 4px 14px rgba(0,0,0,0.2);";
   t.textContent = msg;
   document.body.appendChild(t);
-  setTimeout(function () { t.remove(); }, 3000);
+  setTimeout(function () {
+    t.remove();
+  }, 3000);
 }
 
 // ===== INIT =====
