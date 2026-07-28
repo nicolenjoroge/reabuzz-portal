@@ -532,6 +532,8 @@
     if (!story.blocks || story.blocks.length === 0) {
       var seeded = [];
 
+      // Extract usage safely — add this before any usage.* references
+      var usage = (item.metrics && item.metrics.usage) || {};
       // Existing body → narrative block
       if (story.body) {
         seeded.push({ type: "narrative", heading: "", body: story.body });
@@ -579,16 +581,16 @@
         });
       }
 
-      if(usage.topDocumentTypes && usage.topDocumentTypes.length) {
+      if (usage.topDocumentTypes && usage.topDocumentTypes.length) {
         seeded.push({
           type: "stats-grid",
           title: "Top document types",
           displayMode: "table",
           columns: ["Document", "Count"],
           rows: usage.topDocumentTypes.map(function (d) {
-            return [d.name, String(d.count)]
-          })
-        })
+            return [d.name, String(d.count)];
+          }),
+        });
       }
 
       // Top users → table mode
@@ -759,6 +761,41 @@
     window._refreshStoryBuilder();
   };
 
+  window._storyGridAddRow = function (base, colCount) {
+    var emptyRow = [];
+    for (var i = 0; i < colCount; i++) emptyRow.push("");
+    CS.addItem(base + ".rows", emptyRow);
+    window._refreshStoryBuilder();
+  };
+
+  window._storyGridAddCol = function (base) {
+    var d = CS.get();
+    var cols = _getNestedValue(d, base + ".columns") || [];
+    CS.addItem(base + ".columns", "Column " + (cols.length + 1));
+    var rows = _getNestedValue(d, base + ".rows") || [];
+    rows.forEach(function (row, i) {
+      CS.update(base + ".rows." + i + "." + cols.length, "");
+    });
+    window._refreshStoryBuilder();
+  };
+
+  window._storyGridRemoveCol = function (base, colIdx) {
+    var d = CS.get();
+    var rows = _getNestedValue(d, base + ".rows") || [];
+    CS.removeItem(base + ".columns", colIdx);
+    rows.forEach(function (row, i) {
+      if (Array.isArray(row)) {
+        CS.removeItem(base + ".rows." + i, colIdx);
+      }
+    });
+    window._refreshStoryBuilder();
+  };
+
+  function _getNestedValue(obj, path) {
+    return path.split(".").reduce(function (o, k) {
+      return o == null ? undefined : o[isNaN(k) ? k : Number(k)];
+    }, obj);
+  }
   // Delegated listener — handles pick-image / pick-video buttons
   // Covers both drawer body (initiative drawers) and main area (panel-body pickers like REA Story)
   document.addEventListener("DOMContentLoaded", function () {
