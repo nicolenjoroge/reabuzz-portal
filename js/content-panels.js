@@ -574,13 +574,13 @@
       ) +
       card(
         "Video shelf",
-        "landing.videoSlides.refIds",
+        "Featured videos on the landing page - Pick 2",
         videoRows +
           '<button class="add-btn" onclick="_landingPickVideo()">+ Add video</button>',
       ) +
       card(
         "Storyhub teasers",
-        "landing.storyhub.refIds \u2014 order controls display sequence on the live site.",
+        "Around the storyhub \u2014 order controls display sequence on the live site.",
         storyhubRows +
           (availableTeasers.length
             ? '<div style="display:flex;gap:8px;align-items:center;margin-top:10px;">' +
@@ -682,7 +682,7 @@
 
     if (!allVideos.length) {
       showToast(
-        "No videos found — add videos in Innovation Portfolio first.",
+        "No videos found — add videos in Innovations Delivered first.",
         "info",
       );
       return;
@@ -792,7 +792,7 @@
     document.getElementById("mainArea").innerHTML =
       header(
         "REA Story",
-        "The two scroll panels — what REA is, and who drives it.",
+        "What REA is",
         toolbar("reastory"),
       ) +
       '<div class="panel-body">' +
@@ -807,9 +807,9 @@
           field(
             "Headline",
             input("reaStory.teaser.headline", teaser.headline),
-          ) +
-          field("Link href", input("reaStory.teaser.href", teaser.href)) +
-          "</div>",
+          ),
+          // field("Link href", input("reaStory.teaser.href", teaser.href)) +
+          // "</div>",
       ) +
       card(
         "Panel 1 — What REA is",
@@ -890,7 +890,7 @@
   };
 
   // -------------------------------------------------------------------------
-  // INNOVATION PORTFOLIO
+  // INNOVATIONS DELIVERED
   //
   // page.json keys used:
   //   innovation.teaser.sectionLabel, .headline, .href
@@ -993,13 +993,13 @@
     document.getElementById("mainArea").innerHTML =
       header(
         "Innovation Portfolio",
-        "Top initiatives, coming soon, and video highlights.",
+        "Top initiatives, deployed, coming soon, and video highlights.",
         toolbar("portfolio"),
       ) +
       '<div class="panel-body">' +
       card(
         "Section copy",
-        "innovation.teaser + sectionSub",
+        "Lanidng page around the storyhub details",
         '<div class="form-grid" style="grid-template-columns:1fr 1fr;gap:14px;">' +
           field(
             "Teaser headline",
@@ -1012,9 +1012,7 @@
           field(
             "Section label",
             input("innovation.teaser.sectionLabel", teaser.sectionLabel),
-          ) +
-          field("Link href", input("innovation.teaser.href", teaser.href)) +
-          "</div>",
+          ),
       ) +
       card(
         "Top initiatives",
@@ -1459,9 +1457,7 @@
           field(
             "Headline",
             input("spotlight.teaser.headline", teaser.headline),
-          ) +
-          field("Link href", input("spotlight.teaser.href", teaser.href)) +
-          "</div>",
+          ),
       ) +
       card(
         e(tObj.actTitle || "Testimonials"),
@@ -1709,9 +1705,7 @@
             "Headline",
             input("whatsNew.teaser.headline", teaser.headline),
           ) +
-          field("Section sub", input("whatsNew.sectionSub", wn.sectionSub)) +
-          field("Link href", input("whatsNew.teaser.href", teaser.href)) +
-          "</div>",
+          field("Section sub", input("whatsNew.sectionSub", wn.sectionSub)),
       ) +
       card(
         "Editor's pick",
