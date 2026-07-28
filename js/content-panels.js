@@ -224,47 +224,177 @@
     "stats-grid": {
       label: "Stats grid",
       icon: "▦",
-      defaults: { type: "stats-grid", stats: [] },
+      defaults: {
+        type: "stats-grid",
+        title: "",
+        displayMode: "cards", // 'cards' or 'table'
+        columns: ["Name", "Value"],
+        rows: [],
+      },
       fields: function (base, b) {
-        var stats = b.stats || [];
-        return (
-          '<div class="field" style="grid-column:span 2"><label>Stats</label>' +
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-          stats
-            .map(function (s, i) {
+        var mode = b.displayMode || "cards";
+        var cols = b.columns || ["Name", "Value"];
+        var rows = b.rows || [];
+
+        // Mode toggle
+        var modeToggle =
+          '<div class="field" style="grid-column:span 2">' +
+          "<label>Display as</label>" +
+          '<div style="display:flex;gap:8px;">' +
+          '<button class="btn ' +
+          (mode === "cards" ? "btn-primary" : "btn-ghost") +
+          ' btn-sm" ' +
+          "onclick=\"CS.update('" +
+          base +
+          ".displayMode','cards');window._refreshStoryBuilder()\">&#9632; Cards</button>" +
+          '<button class="btn ' +
+          (mode === "table" ? "btn-primary" : "btn-ghost") +
+          ' btn-sm" ' +
+          "onclick=\"CS.update('" +
+          base +
+          ".displayMode','table');window._refreshStoryBuilder()\">&#9783; Table</button>" +
+          "</div>" +
+          "</div>";
+
+        // Cards mode — simple value + label pairs (like your existing stats[])
+        if (mode === "cards") {
+          var cardRows = rows
+            .map(function (row, ri) {
+              var val = Array.isArray(row) ? row[0] || "" : "";
+              var label = Array.isArray(row) ? row[1] || "" : "";
               return (
-                '<div style="display:flex;gap:6px;">' +
-                '<input placeholder="Value" value="' +
-                e(s.value) +
-                '" ' +
+                '<div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">' +
+                '<input value="' +
+                e(val) +
+                '" placeholder="Value e.g. 68%" ' +
                 "oninput=\"CS.update('" +
                 base +
-                ".stats." +
-                i +
-                ".value',this.value)\">" +
-                '<input placeholder="Label" value="' +
-                e(s.label) +
-                '" ' +
+                ".rows." +
+                ri +
+                '.0\',this.value)" style="flex:1;">' +
+                '<input value="' +
+                e(label) +
+                '" placeholder="Label e.g. Faster TAT" ' +
                 "oninput=\"CS.update('" +
                 base +
-                ".stats." +
-                i +
-                ".label',this.value)\">" +
+                ".rows." +
+                ri +
+                '.1\',this.value)" style="flex:1;">' +
                 '<button class="btn btn-ghost btn-sm btn-icon" ' +
                 "onclick=\"CS.removeItem('" +
                 base +
-                ".stats'," +
-                i +
-                ');window._refreshStoryBuilder()">✕</button>' +
+                ".rows'," +
+                ri +
+                ');window._refreshStoryBuilder()">&#x2715;</button>' +
                 "</div>"
               );
             })
-            .join("") +
+            .join("");
+
+          return (
+            modeToggle +
+            '<div class="field" style="grid-column:span 2">' +
+            field("Grid title", input(base + ".title", b.title)) +
+            "</div>" +
+            '<div class="field" style="grid-column:span 2">' +
+            '<label>Cards <span style="font-size:11px;color:var(--txt2);">value + label pairs</span></label>' +
+            (cardRows ||
+              '<div style="color:var(--txt2);font-size:12px;margin-bottom:6px;">No cards yet.</div>') +
+            '<button class="add-btn" onclick="_storyGridAddRow(\'' +
+            base +
+            "',2)\">+ Add card</button>" +
+            "</div>"
+          );
+        }
+
+        // Table mode — columns + rows
+        var colHeaders = cols
+          .map(function (col, ci) {
+            return (
+              '<div style="display:flex;gap:4px;align-items:center;">' +
+              '<input value="' +
+              e(col) +
+              '" placeholder="Column ' +
+              (ci + 1) +
+              '" ' +
+              "oninput=\"CS.update('" +
+              base +
+              ".columns." +
+              ci +
+              '\',this.value)" style="flex:1;">' +
+              '<button class="btn btn-ghost btn-sm btn-icon" ' +
+              "onclick=\"_storyGridRemoveCol('" +
+              base +
+              "'," +
+              ci +
+              ')">&#x2715;</button>' +
+              "</div>"
+            );
+          })
+          .join("");
+
+        var rowHtml = rows
+          .map(function (row, ri) {
+            var cells = cols
+              .map(function (col, ci) {
+                var val = Array.isArray(row) ? row[ci] || "" : "";
+                return (
+                  '<input value="' +
+                  e(val) +
+                  '" placeholder="' +
+                  e(col) +
+                  '" ' +
+                  "oninput=\"CS.update('" +
+                  base +
+                  ".rows." +
+                  ri +
+                  "." +
+                  ci +
+                  "',this.value)\">"
+                );
+              })
+              .join("");
+            return (
+              '<div style="display:grid;grid-template-columns:repeat(' +
+              cols.length +
+              ',1fr) 32px;gap:6px;margin-bottom:4px;">' +
+              cells +
+              '<button class="btn btn-ghost btn-sm btn-icon" ' +
+              "onclick=\"CS.removeItem('" +
+              base +
+              ".rows'," +
+              ri +
+              ');window._refreshStoryBuilder()">&#x2715;</button>' +
+              "</div>"
+            );
+          })
+          .join("");
+
+        return (
+          modeToggle +
+          '<div class="field" style="grid-column:span 2">' +
+          field("Grid title", input(base + ".title", b.title)) +
           "</div>" +
-          '<button class="add-btn" style="margin-top:6px;" ' +
-          "onclick=\"CS.addItem('" +
+          '<div class="field" style="grid-column:span 2">' +
+          "<label>Columns</label>" +
+          '<div style="display:grid;grid-template-columns:repeat(' +
+          cols.length +
+          ',1fr);gap:6px;margin-bottom:6px;">' +
+          colHeaders +
+          "</div>" +
+          '<button class="add-btn" onclick="_storyGridAddCol(\'' +
           base +
-          ".stats',{value:'',label:''});window._refreshStoryBuilder()\">+ Add stat</button>" +
+          "')\">+ Add column</button>" +
+          "</div>" +
+          '<div class="field" style="grid-column:span 2">' +
+          "<label>Rows</label>" +
+          (rowHtml ||
+            '<div style="color:var(--txt2);font-size:12px;margin-bottom:6px;">No rows yet.</div>') +
+          '<button class="add-btn" onclick="_storyGridAddRow(\'' +
+          base +
+          "'," +
+          cols.length +
+          ')">+ Add row</button>' +
           "</div>"
         );
       },
@@ -423,26 +553,55 @@
       }
 
       // Existing metrics → stats-grid block
-      if (item.metrics && item.metrics.usage) {
-        var usage = item.metrics.usage;
-        if (usage.topDepartments && usage.topDepartments.length) {
-          seeded.push({
-            type: "stats-grid",
-            label: "Top departments",
-            stats: usage.topDepartments.map(function (d) {
-              return { value: String(d.count), label: d.name };
-            }),
-          });
-        }
-        if (usage.topDocumentTypes && usage.topDocumentTypes.length) {
-          seeded.push({
-            type: "bar-chart",
-            title: "Top document types",
-            bars: usage.topDocumentTypes.map(function (d) {
-              return { label: d.name, value: String(d.count) };
-            }),
-          });
-        }
+      // Existing stats[] → cards mode
+      if (item.stats && item.stats.length) {
+        seeded.push({
+          type: "stats-grid",
+          title: "Key stats",
+          displayMode: "cards",
+          columns: ["Value", "Label"],
+          rows: item.stats.map(function (s) {
+            return [s.value, s.label];
+          }),
+        });
+      }
+
+      // Top departments → table mode
+      if (usage.topDepartments && usage.topDepartments.length) {
+        seeded.push({
+          type: "stats-grid",
+          title: "Top departments",
+          displayMode: "table",
+          columns: ["Department", "Count"],
+          rows: usage.topDepartments.map(function (d) {
+            return [d.name, String(d.count)];
+          }),
+        });
+      }
+
+      if(usage.topDocumentTypes && usage.topDocumentTypes.length) {
+        seeded.push({
+          type: "stats-grid",
+          title: "Top document types",
+          displayMode: "table",
+          columns: ["Document", "Count"],
+          rows: usage.topDocumentTypes.map(function (d) {
+            return [d.name, String(d.count)]
+          })
+        })
+      }
+
+      // Top users → table mode
+      if (usage.topUsers && usage.topUsers.length) {
+        seeded.push({
+          type: "stats-grid",
+          title: "Top users",
+          displayMode: "table",
+          columns: ["Name", "Role", "Count"],
+          rows: usage.topUsers.map(function (u) {
+            return [u.name, u.role, String(u.count)];
+          }),
+        });
       }
 
       // Existing closing → closing block
