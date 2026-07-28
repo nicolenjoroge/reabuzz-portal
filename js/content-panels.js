@@ -210,6 +210,7 @@
   var BLOCK_TYPES = {
     narrative: {
       label: "Narrative",
+      icon: "📝",
       defaults: { type: "narrative", heading: "", body: "" },
       fields: function (base, b) {
         return (
@@ -270,6 +271,7 @@
     },
     "bar-chart": {
       label: "Bar chart",
+      icon: "📈",
       defaults: { type: "bar-chart", title: "", bars: [] },
       fields: function (base, b) {
         var bars = b.bars || [];
@@ -316,6 +318,7 @@
     },
     "media-shelf": {
       label: "Media shelf",
+      icon: "🖼️",
       defaults: { type: "media-shelf", items: [] },
       fields: function (base, b) {
         var items = b.items || [];
@@ -331,7 +334,8 @@
                 '<button class="btn btn-ghost btn-sm" id="btn_shelf_' +
                 i +
                 '" ' +
-                'data-cspath="' +
+                'data-action="pick-image" ' +
+                'data-path="' +
                 base +
                 ".items." +
                 i +
@@ -353,13 +357,14 @@
           '<button class="add-btn" style="margin-top:6px;" ' +
           "onclick=\"CS.addItem('" +
           base +
-          ".items',{src:'',caption:''});window._refreshStoryBuilder()\">+ Add media</button>" +
+          ".items',{src:''});window._refreshStoryBuilder()\">+ Add media</button>" +
           "</div>"
         );
       },
     },
     quote: {
       label: "Quote",
+      icon: "❝",
       defaults: { type: "quote", text: "", attribution: "" },
       fields: function (base, b) {
         return (
@@ -372,6 +377,7 @@
     },
     closing: {
       label: "Closing",
+      icon: "✦",
       defaults: { type: "closing", line: "", body: "" },
       fields: function (base, b) {
         return (
@@ -507,7 +513,7 @@
   window._addStoryBlock = function (type) {
     var bt = BLOCK_TYPES[type];
     if (!bt) return;
-    CS.addItem(window._storyBase + ".blocks", Object.assign({}, bt.defaults));
+    CS.addItem(window._storyBase + ".blocks", JSON.parse(JSON.stringify(bt.defaults)));
     window._refreshStoryBuilder();
   };
   // Delegated listener — handles pick-image / pick-video buttons
