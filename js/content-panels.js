@@ -227,20 +227,13 @@
       defaults: {
         type: "stats-grid",
         title: "",
-        displayMode: "cards", // 'cards' or 'table'
-        columns: ["Name", "Value"],
-        rows: [],
+        displayMode: "cards",
+        items: [],
       },
-
-      
       fields: function (base, b) {
-        console.log('rows:', JSON.stringify(b.rows));
-      console.log('cols:', JSON.stringify(b.columns));
         var mode = b.displayMode || "cards";
-        var cols = b.columns || ["Name", "Value"];
-        var rows = b.rows || [];
+        var items = b.items || [];
 
-        // Mode toggle
         var modeToggle =
           '<div class="field" style="grid-column:span 2">' +
           "<label>Display as</label>" +
@@ -260,114 +253,31 @@
           "</div>" +
           "</div>";
 
-        // Cards mode — simple value + label pairs (like your existing stats[])
-        if (mode === "cards") {
-          var cardRows = rows
-            .map(function (row, ri) {
-              var val = Array.isArray(row) ? row[0] || "" : "";
-              var label = Array.isArray(row) ? row[1] || "" : "";
-              return (
-                '<div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">' +
-                '<input value="' +
-                e(val) +
-                '" placeholder="Value e.g. 68%" ' +
-                "oninput=\"CS.update('" +
-                base +
-                ".rows." +
-                ri +
-                '.0\',this.value)" style="flex:1;">' +
-                '<input value="' +
-                e(label) +
-                '" placeholder="Label e.g. Faster TAT" ' +
-                "oninput=\"CS.update('" +
-                base +
-                ".rows." +
-                ri +
-                '.1\',this.value)" style="flex:1;">' +
-                '<button class="btn btn-ghost btn-sm btn-icon" ' +
-                "onclick=\"CS.removeItem('" +
-                base +
-                ".rows'," +
-                ri +
-                ');window._refreshStoryBuilder()">&#x2715;</button>' +
-                "</div>"
-              );
-            })
-            .join("");
-
-          return (
-            modeToggle +
-            '<div class="field" style="grid-column:span 2">' +
-            field("Grid title", input(base + ".title", b.title)) +
-            "</div>" +
-            '<div class="field" style="grid-column:span 2">' +
-            '<label>Cards <span style="font-size:11px;color:var(--txt2);">value + label pairs</span></label>' +
-            (cardRows ||
-              '<div style="color:var(--txt2);font-size:12px;margin-bottom:6px;">No cards yet.</div>') +
-            '<button class="add-btn" onclick="_storyGridAddRow(\'' +
-            base +
-            "',2)\">+ Add card</button>" +
-            "</div>"
-          );
-        }
-
-        // Table mode — columns + rows
-        var colHeaders = cols
-          .map(function (col, ci) {
+        var itemRows = items
+          .map(function (item, i) {
             return (
-              '<div style="display:flex;gap:4px;align-items:center;">' +
+              '<div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">' +
               '<input value="' +
-              e(col) +
-              '" placeholder="Column ' +
-              (ci + 1) +
-              '" ' +
+              e(item.name || "") +
+              '" placeholder="Name" ' +
               "oninput=\"CS.update('" +
               base +
-              ".columns." +
-              ci +
-              '\',this.value)" style="flex:1;">' +
-              '<button class="btn btn-ghost btn-sm btn-icon" ' +
-              "onclick=\"_storyGridRemoveCol('" +
+              ".items." +
+              i +
+              '.name\',this.value)" style="flex:1;">' +
+              '<input value="' +
+              e(item.value || "") +
+              '" placeholder="Value" ' +
+              "oninput=\"CS.update('" +
               base +
-              "'," +
-              ci +
-              ')">&#x2715;</button>' +
-              "</div>"
-            );
-          })
-          .join("");
-
-        var rowHtml = rows
-          .map(function (row, ri) {
-            var cells = cols
-              .map(function (col, ci) {
-                var val = Array.isArray(row) ? row[ci] || "" : "";
-                return (
-                  '<input value="' +
-                  e(val) +
-                  '" placeholder="' +
-                  e(col) +
-                  '" ' +
-                  "oninput=\"CS.update('" +
-                  base +
-                  ".rows." +
-                  ri +
-                  "." +
-                  ci +
-                  "',this.value)\">"
-                );
-              })
-              .join("");
-            return (
-              '<div style="display:grid;grid-template-columns:repeat(' +
-              cols.length +
-              ',1fr) 32px;gap:6px;margin-bottom:4px;">' +
-              cells +
+              ".items." +
+              i +
+              '.value\',this.value)" style="flex:1;">' +
               '<button class="btn btn-ghost btn-sm btn-icon" ' +
               "onclick=\"CS.removeItem('" +
               base +
-              ".rows'," +
-              ri +
+              ".items'," +
+              i +
               ');window._refreshStoryBuilder()">&#x2715;</button>' +
               "</div>"
             );
@@ -380,25 +290,17 @@
           field("Grid title", input(base + ".title", b.title)) +
           "</div>" +
           '<div class="field" style="grid-column:span 2">' +
-          "<label>Columns</label>" +
-          '<div style="display:grid;grid-template-columns:repeat(' +
-          cols.length +
-          ',1fr);gap:6px;margin-bottom:6px;">' +
-          colHeaders +
-          "</div>" +
-          '<button class="add-btn" onclick="_storyGridAddCol(\'' +
+          "<label>Items " +
+          '<span style="font-size:11px;color:var(--txt2);">— shown as ' +
+          (mode === "cards" ? "stat cards" : "a table") +
+          " on the live site</span>" +
+          "</label>" +
+          (itemRows ||
+            '<div style="color:var(--txt2);font-size:12px;margin-bottom:6px;">No items yet.</div>') +
+          '<button class="add-btn" ' +
+          "onclick=\"CS.addItem('" +
           base +
-          "')\">+ Add column</button>" +
-          "</div>" +
-          '<div class="field" style="grid-column:span 2">' +
-          "<label>Rows</label>" +
-          (rowHtml ||
-            '<div style="color:var(--txt2);font-size:12px;margin-bottom:6px;">No rows yet.</div>') +
-          '<button class="add-btn" onclick="_storyGridAddRow(\'' +
-          base +
-          "'," +
-          cols.length +
-          ')">+ Add row</button>' +
+          ".items',{name:'',value:''});window._refreshStoryBuilder()\">+ Add item</button>" +
           "</div>"
         );
       },
@@ -558,54 +460,53 @@
         });
       }
 
-      // Existing metrics → stats-grid block
-      // Existing stats[] → cards mode
+      // Key stats → cards
       if (item.stats && item.stats.length) {
         seeded.push({
           type: "stats-grid",
           title: "Key stats",
           displayMode: "cards",
-          columns: ["Value", "Label"],
-          rows: item.stats.map(function (s) {
-            return [s.value, s.label];
+          items: item.stats.map(function (s) {
+            return { name: s.label, value: s.value };
           }),
         });
       }
 
-      // Top departments → table mode
+      // Top departments → table
       if (usage.topDepartments && usage.topDepartments.length) {
         seeded.push({
           type: "stats-grid",
           title: "Top departments",
           displayMode: "table",
-          columns: ["Department", "Count"],
-          rows: usage.topDepartments.map(function (d) {
-            return [d.name, String(d.count)];
+          items: usage.topDepartments.map(function (d) {
+            return { name: d.name, value: String(d.count) };
           }),
         });
       }
 
+      // Top document types → table
       if (usage.topDocumentTypes && usage.topDocumentTypes.length) {
         seeded.push({
           type: "stats-grid",
           title: "Top document types",
           displayMode: "table",
-          columns: ["Document", "Count"],
-          rows: usage.topDocumentTypes.map(function (t) {
-            return [d.name, String(t.count)];
+          items: usage.topDocumentTypes.map(function (d) {
+            return { name: d.name, value: String(d.count) };
           }),
         });
       }
 
-      // Top users → table mode
+      // Top users → table (name + count, role as part of name)
       if (usage.topUsers && usage.topUsers.length) {
         seeded.push({
           type: "stats-grid",
           title: "Top users",
           displayMode: "table",
-          columns: ["Name", "Role", "Count"],
-          rows: usage.topUsers.map(function (u) {
-            return [u.name, u.role, String(u.count)];
+          items: usage.topUsers.map(function (u) {
+            return {
+              name: u.name + " (" + u.role + ")",
+              value: String(u.count),
+            };
           }),
         });
       }
@@ -765,41 +666,9 @@
     window._refreshStoryBuilder();
   };
 
-  window._storyGridAddRow = function (base, colCount) {
-    var emptyRow = [];
-    for (var i = 0; i < colCount; i++) emptyRow.push("");
-    CS.addItem(base + ".rows", emptyRow);
-    window._refreshStoryBuilder();
-  };
+ 
 
-  window._storyGridAddCol = function (base) {
-    var d = CS.get();
-    var cols = _getNestedValue(d, base + ".columns") || [];
-    CS.addItem(base + ".columns", "Column " + (cols.length + 1));
-    var rows = _getNestedValue(d, base + ".rows") || [];
-    rows.forEach(function (row, i) {
-      CS.update(base + ".rows." + i + "." + cols.length, "");
-    });
-    window._refreshStoryBuilder();
-  };
-
-  window._storyGridRemoveCol = function (base, colIdx) {
-    var d = CS.get();
-    var rows = _getNestedValue(d, base + ".rows") || [];
-    CS.removeItem(base + ".columns", colIdx);
-    rows.forEach(function (row, i) {
-      if (Array.isArray(row)) {
-        CS.removeItem(base + ".rows." + i, colIdx);
-      }
-    });
-    window._refreshStoryBuilder();
-  };
-
-  function _getNestedValue(obj, path) {
-    return path.split(".").reduce(function (o, k) {
-      return o == null ? undefined : o[isNaN(k) ? k : Number(k)];
-    }, obj);
-  }
+  
   // Delegated listener — handles pick-image / pick-video buttons
   // Covers both drawer body (initiative drawers) and main area (panel-body pickers like REA Story)
   document.addEventListener("DOMContentLoaded", function () {
