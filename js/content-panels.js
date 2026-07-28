@@ -395,16 +395,75 @@
     var item = (d.innovation.topInitiatives.items || [])[itemIdx];
     if (!item) return;
 
-    var story = item.story || { eyebrow: "", heading: "", blocks: [] };
+    var story = item.story || {};
     var base = "innovation.topInitiatives.items." + itemIdx + ".story";
 
-    // Ensure story exists on the item
-    if (!item.story) CS.update(base, { eyebrow: "", heading: "", blocks: [] });
+    // Seed blocks from existing flat story fields on first open
+    if (!story.blocks || story.blocks.length === 0) {
+      var seeded = [];
+
+      // Existing body → narrative block
+      if (story.body) {
+        seeded.push({ type: "narrative", heading: "", body: story.body });
+      }
+
+      // Existing media on initiative root → media-shelf block
+      if (item.media && item.media.length) {
+        seeded.push({
+          type: "media-shelf",
+          items: item.media.map(function (m) {
+            return {
+              src: m.src,
+              caption: m.caption,
+              type: m.type,
+              poster: m.poster,
+            };
+          }),
+        });
+      }
+
+      // Existing metrics → stats-grid block
+      if (item.metrics && item.metrics.usage) {
+        var usage = item.metrics.usage;
+        if (usage.topDepartments && usage.topDepartments.length) {
+          seeded.push({
+            type: "stats-grid",
+            label: "Top departments",
+            stats: usage.topDepartments.map(function (d) {
+              return { value: String(d.count), label: d.name };
+            }),
+          });
+        }
+        if (usage.topDocumentTypes && usage.topDocumentTypes.length) {
+          seeded.push({
+            type: "bar-chart",
+            title: "Top document types",
+            bars: usage.topDocumentTypes.map(function (d) {
+              return { label: d.name, value: String(d.count) };
+            }),
+          });
+        }
+      }
+
+      // Existing closing → closing block
+      if (story.closing) {
+        seeded.push({
+          type: "closing",
+          line: story.closing.line || "",
+          body: story.closing.body || "",
+        });
+      }
+
+      if (seeded.length) {
+        CS.update(base + ".blocks", seeded);
+        story = CS.get().innovation.topInitiatives.items[itemIdx].story;
+      }
+    }
 
     document.getElementById("drawerTitle").textContent =
       "Story builder \u2014 " + item.title;
     document.getElementById("drawerSub").textContent =
-      "Drag blocks to reorder. Changes auto-save.";
+      "Blocks render top to bottom on the live site.";
     document.getElementById("drawerDelete").style.display = "none";
 
     window._storyBase = base;
@@ -428,8 +487,8 @@
 
   function _renderStoryBuilder(story, base) {
     var blocks = story.blocks || [];
+    var techChips = story.techChips || [];
 
-    // Block type picker options
     var typeOpts = Object.keys(BLOCK_TYPES)
       .map(function (type) {
         var bt = BLOCK_TYPES[type];
@@ -447,13 +506,11 @@
       })
       .join("");
 
-    // Render each block
     var blockRows = blocks
       .map(function (b, i) {
         var bt = BLOCK_TYPES[b.type];
         var base_b = base + ".blocks." + i;
         if (!bt) return "";
-
         return (
           '<div class="section-card" style="margin-bottom:10px;">' +
           '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
@@ -493,29 +550,56 @@
       .join("");
 
     document.getElementById("drawerBody").innerHTML =
-      '<div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">' +
+      // Top-level story fields
+      '<div class="section-card" style="margin-bottom:14px;">' +
+      '<h4 style="margin-bottom:10px;">Story header</h4>' +
+      '<div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px;">' +
       field("Eyebrow", input(base + ".eyebrow", story.eyebrow)) +
       '<div class="field" style="grid-column:span 2">' +
-      field("Story heading", input(base + ".heading", story.heading)) +
+      field("Heading", input(base + ".heading", story.heading)) +
+      "</div>" +
+      '<div class="field" style="grid-column:span 2">' +
+      field(
+        "Tech chips (comma separated)",
+        '<input value="' +
+          e(techChips.join(", ")) +
+          '" ' +
+          "oninput=\"CS.update('" +
+          base +
+          ".techChips',this.value.split(',').map(function(s){return s.trim();}).filter(Boolean))\">",
+      ) +
       "</div>" +
       "</div>" +
+      "</div>" +
+      // Block picker
       '<div style="margin-bottom:12px;">' +
-      '<div style="font-size:12px;font-weight:bold;color:var(--txt2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Add block</div>' +
+      '<div style="font-size:11px;font-weight:bold;color:var(--txt2);margin-bottom:8px;' +
+      'text-transform:uppercase;letter-spacing:.5px;">Add block</div>' +
       '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
       typeOpts +
       "</div>" +
       "</div>" +
+      // Blocks
       '<div id="story-blocks">' +
-      blockRows +
+      (blocks.length
+        ? blockRows
+        : '<div style="padding:20px;text-align:center;color:var(--txt2);font-size:13px;' +
+          'border:1px dashed var(--border);border-radius:8px;">' +
+          "No blocks yet \u2014 add one above to start building the story." +
+          "</div>") +
       "</div>";
   }
 
   window._addStoryBlock = function (type) {
     var bt = BLOCK_TYPES[type];
     if (!bt) return;
-    CS.addItem(window._storyBase + ".blocks", JSON.parse(JSON.stringify(bt.defaults)));
+    CS.addItem(
+      window._storyBase + ".blocks",
+      JSON.parse(JSON.stringify(bt.defaults)),
+    );
     window._refreshStoryBuilder();
   };
+
   // Delegated listener — handles pick-image / pick-video buttons
   // Covers both drawer body (initiative drawers) and main area (panel-body pickers like REA Story)
   document.addEventListener("DOMContentLoaded", function () {
@@ -1240,7 +1324,9 @@
             '<button class="btn btn-ghost btn-sm" onclick="_portfolioInitiativeDrawer(' +
             i +
             ')">Edit</button>' +
-            '<button class="btn btn-primary btn-sm" onclick="_openStoryBuilder(' + i + ')">Story \u2192</button>'
+            '<button class="btn btn-primary btn-sm" onclick="_openStoryBuilder(' +
+            i +
+            ')">Story \u2192</button>',
         );
       })
       .join("");
