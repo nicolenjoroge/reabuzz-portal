@@ -433,31 +433,45 @@
 
     var story = item.story || {};
     var base = "innovation.topInitiatives.items." + itemIdx + ".story";
+    var usage = (item.metrics && item.metrics.usage) || {};
 
-    // Seed blocks from existing flat story fields on first open
-    if (!story.blocks || story.blocks.length === 0) {
+    // ---------------------------------------------------------------------------
+    // Migration — convert old blocks or missing usage into correct format
+    // ---------------------------------------------------------------------------
+    var blocks = story.blocks || [];
+    var needsRebuild = false;
+
+    // Check if usage grids are missing or malformed
+    var usageTypes = ["Top departments", "Top document types", "Top users"];
+    var existingTitles = blocks.map(function (b) {
+      return b.title || "";
+    });
+
+    usageTypes.forEach(function (t) {
+      if (existingTitles.indexOf(t) === -1) needsRebuild = true;
+    });
+
+    // Check if any stats-grid block uses old rows/columns format
+    blocks.forEach(function (b) {
+      if (b.type === "stats-grid" && b.rows !== undefined) needsRebuild = true;
+    });
+
+    if (needsRebuild) {
       var seeded = [];
 
-      // Extract usage safely — add this before any usage.* references
-      var usage = (item.metrics && item.metrics.usage) || {};
-      // Existing body → narrative block
-      if (story.body) {
-        seeded.push({ type: "narrative", heading: "", body: story.body });
-      }
+      // Keep any non-stats-grid blocks that are already correct
+      blocks.forEach(function (b) {
+        if (b.type !== "stats-grid") seeded.push(b);
+      });
 
-      // Existing media on initiative root → media-shelf block
-      if (item.media && item.media.length) {
-        seeded.push({
-          type: "media-shelf",
-          items: item.media.map(function (m) {
-            return {
-              src: m.src,
-              caption: m.caption,
-              type: m.type,
-              poster: m.poster,
-            };
-          }),
-        });
+      // narrative from story.body
+      if (
+        story.body &&
+        !seeded.some(function (b) {
+          return b.type === "narrative";
+        })
+      ) {
+        seeded.unshift({ type: "narrative", heading: "", body: story.body });
       }
 
       // Key stats → cards
@@ -478,8 +492,8 @@
           type: "stats-grid",
           title: "Top departments",
           displayMode: "table",
-          items: usage.topDepartments.map(function (d) {
-            return { name: d.name, value: String(d.count) };
+          items: usage.topDepartments.map(function (dep) {
+            return { name: dep.name, value: String(dep.count) };
           }),
         });
       }
@@ -490,13 +504,13 @@
           type: "stats-grid",
           title: "Top document types",
           displayMode: "table",
-          items: usage.topDocumentTypes.map(function (d) {
-            return { name: d.name, value: String(d.count) };
+          items: usage.topDocumentTypes.map(function (doc) {
+            return { name: doc.name, value: String(doc.count) };
           }),
         });
       }
 
-      // Top users → table (name + count, role as part of name)
+      // Top users → table
       if (usage.topUsers && usage.topUsers.length) {
         seeded.push({
           type: "stats-grid",
@@ -511,8 +525,34 @@
         });
       }
 
-      // Existing closing → closing block
-      if (story.closing) {
+      // media-shelf
+      if (
+        item.media &&
+        item.media.length &&
+        !seeded.some(function (b) {
+          return b.type === "media-shelf";
+        })
+      ) {
+        seeded.push({
+          type: "media-shelf",
+          items: item.media.map(function (m) {
+            return {
+              src: m.src,
+              caption: m.caption,
+              type: m.type,
+              poster: m.poster,
+            };
+          }),
+        });
+      }
+
+      // closing
+      if (
+        story.closing &&
+        !seeded.some(function (b) {
+          return b.type === "closing";
+        })
+      ) {
         seeded.push({
           type: "closing",
           line: story.closing.line || "",
@@ -520,10 +560,8 @@
         });
       }
 
-      if (seeded.length) {
-        CS.update(base + ".blocks", seeded);
-        story = CS.get().innovation.topInitiatives.items[itemIdx].story;
-      }
+      CS.update(base + ".blocks", seeded);
+      story = CS.get().innovation.topInitiatives.items[itemIdx].story;
     }
 
     document.getElementById("drawerTitle").textContent =
@@ -666,9 +704,6 @@
     window._refreshStoryBuilder();
   };
 
- 
-
-  
   // Delegated listener — handles pick-image / pick-video buttons
   // Covers both drawer body (initiative drawers) and main area (panel-body pickers like REA Story)
   document.addEventListener("DOMContentLoaded", function () {
