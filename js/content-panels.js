@@ -207,6 +207,309 @@
 
   window._wirePickers = _wirePickers;
 
+  var BLOCK_TYPES = {
+    narrative: {
+      label: "Narrative",
+      defaults: { type: "narrative", heading: "", body: "" },
+      fields: function (base, b) {
+        return (
+          field("Heading", input(base + ".heading", b.heading)) +
+          '<div class="field" style="grid-column:span 2"><label>Body</label>' +
+          textarea(base + ".body", b.body, 5) +
+          "</div>"
+        );
+      },
+    },
+    "stats-grid": {
+      label: "Stats grid",
+      icon: "▦",
+      defaults: { type: "stats-grid", stats: [] },
+      fields: function (base, b) {
+        var stats = b.stats || [];
+        return (
+          '<div class="field" style="grid-column:span 2"><label>Stats</label>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+          stats
+            .map(function (s, i) {
+              return (
+                '<div style="display:flex;gap:6px;">' +
+                '<input placeholder="Value" value="' +
+                e(s.value) +
+                '" ' +
+                "oninput=\"CS.update('" +
+                base +
+                ".stats." +
+                i +
+                ".value',this.value)\">" +
+                '<input placeholder="Label" value="' +
+                e(s.label) +
+                '" ' +
+                "oninput=\"CS.update('" +
+                base +
+                ".stats." +
+                i +
+                ".label',this.value)\">" +
+                '<button class="btn btn-ghost btn-sm btn-icon" ' +
+                "onclick=\"CS.removeItem('" +
+                base +
+                ".stats'," +
+                i +
+                ');window._refreshStoryBuilder()">✕</button>' +
+                "</div>"
+              );
+            })
+            .join("") +
+          "</div>" +
+          '<button class="add-btn" style="margin-top:6px;" ' +
+          "onclick=\"CS.addItem('" +
+          base +
+          ".stats',{value:'',label:''});window._refreshStoryBuilder()\">+ Add stat</button>" +
+          "</div>"
+        );
+      },
+    },
+    "bar-chart": {
+      label: "Bar chart",
+      defaults: { type: "bar-chart", title: "", bars: [] },
+      fields: function (base, b) {
+        var bars = b.bars || [];
+        return (
+          field("Chart title", input(base + ".title", b.title)) +
+          '<div class="field" style="grid-column:span 2"><label>Bars</label>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;">' +
+          bars
+            .map(function (bar, i) {
+              return (
+                '<input placeholder="Label" value="' +
+                e(bar.label) +
+                '" ' +
+                "oninput=\"CS.update('" +
+                base +
+                ".bars." +
+                i +
+                ".label',this.value)\">" +
+                '<input placeholder="Value" value="' +
+                e(bar.value) +
+                '" ' +
+                "oninput=\"CS.update('" +
+                base +
+                ".bars." +
+                i +
+                ".value',this.value)\">" +
+                '<button class="btn btn-ghost btn-sm btn-icon" ' +
+                "onclick=\"CS.removeItem('" +
+                base +
+                ".bars'," +
+                i +
+                ');window._refreshStoryBuilder()">✕</button>'
+              );
+            })
+            .join("") +
+          "</div>" +
+          '<button class="add-btn" style="margin-top:6px;" ' +
+          "onclick=\"CS.addItem('" +
+          base +
+          ".bars',{label:'',value:''});window._refreshStoryBuilder()\">+ Add bar</button>" +
+          "</div>"
+        );
+      },
+    },
+    "media-shelf": {
+      label: "Media shelf",
+      defaults: { type: "media-shelf", items: [] },
+      fields: function (base, b) {
+        var items = b.items || [];
+        return (
+          '<div class="field" style="grid-column:span 2"><label>Media items</label>' +
+          items
+            .map(function (item, i) {
+              return (
+                '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">' +
+                '<span style="font-size:12px;color:var(--txt2);flex:1;">' +
+                e(item.src || "No file") +
+                "</span>" +
+                '<button class="btn btn-ghost btn-sm" id="btn_shelf_' +
+                i +
+                '" ' +
+                'data-cspath="' +
+                base +
+                ".items." +
+                i +
+                '.src" ' +
+                'data-preview="shelf_prev_' +
+                i +
+                '" ' +
+                'data-mediatype="image">Choose</button>' +
+                '<button class="btn btn-ghost btn-sm btn-icon" ' +
+                "onclick=\"CS.removeItem('" +
+                base +
+                ".items'," +
+                i +
+                ');window._refreshStoryBuilder()">✕</button>' +
+                "</div>"
+              );
+            })
+            .join("") +
+          '<button class="add-btn" style="margin-top:6px;" ' +
+          "onclick=\"CS.addItem('" +
+          base +
+          ".items',{src:'',caption:''});window._refreshStoryBuilder()\">+ Add media</button>" +
+          "</div>"
+        );
+      },
+    },
+    quote: {
+      label: "Quote",
+      defaults: { type: "quote", text: "", attribution: "" },
+      fields: function (base, b) {
+        return (
+          '<div class="field" style="grid-column:span 2"><label>Quote text</label>' +
+          textarea(base + ".text", b.text, 3) +
+          "</div>" +
+          field("Attribution", input(base + ".attribution", b.attribution))
+        );
+      },
+    },
+    closing: {
+      label: "Closing",
+      defaults: { type: "closing", line: "", body: "" },
+      fields: function (base, b) {
+        return (
+          field("Closing line", input(base + ".line", b.line)) +
+          '<div class="field" style="grid-column:span 2"><label>Closing body</label>' +
+          textarea(base + ".body", b.body, 3) +
+          "</div>"
+        );
+      },
+    },
+  };
+
+  window._openStoryBuilder = function (itemIdx) {
+    var d = CS.get();
+    var item = (d.innovation.topInitiatives.items || [])[itemIdx];
+    if (!item) return;
+
+    var story = item.story || { eyebrow: "", heading: "", blocks: [] };
+    var base = "innovation.topInitiatives.items." + itemIdx + ".story";
+
+    // Ensure story exists on the item
+    if (!item.story) CS.update(base, { eyebrow: "", heading: "", blocks: [] });
+
+    document.getElementById("drawerTitle").textContent =
+      "Story builder \u2014 " + item.title;
+    document.getElementById("drawerSub").textContent =
+      "Drag blocks to reorder. Changes auto-save.";
+    document.getElementById("drawerDelete").style.display = "none";
+
+    window._storyBase = base;
+    window._storyItemIdx = itemIdx;
+
+    _renderStoryBuilder(story, base);
+    document.getElementById("drawerOverlay").className = "drawer-overlay open";
+
+    _drawerSave = function () {
+      closeDrawer();
+      window.renderPortfolio();
+    };
+  };
+
+  window._refreshStoryBuilder = function () {
+    var d = CS.get();
+    var item = (d.innovation.topInitiatives.items || [])[window._storyItemIdx];
+    if (!item) return;
+    _renderStoryBuilder(item.story || {}, window._storyBase);
+  };
+
+  function _renderStoryBuilder(story, base) {
+    var blocks = story.blocks || [];
+
+    // Block type picker options
+    var typeOpts = Object.keys(BLOCK_TYPES)
+      .map(function (type) {
+        var bt = BLOCK_TYPES[type];
+        return (
+          '<button class="btn btn-ghost btn-sm" style="display:flex;align-items:center;gap:6px;" ' +
+          "onclick=\"_addStoryBlock('" +
+          type +
+          "')\">" +
+          '<span style="font-size:16px;">' +
+          bt.icon +
+          "</span>" +
+          bt.label +
+          "</button>"
+        );
+      })
+      .join("");
+
+    // Render each block
+    var blockRows = blocks
+      .map(function (b, i) {
+        var bt = BLOCK_TYPES[b.type];
+        var base_b = base + ".blocks." + i;
+        if (!bt) return "";
+
+        return (
+          '<div class="section-card" style="margin-bottom:10px;">' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
+          '<span style="font-size:18px;">' +
+          bt.icon +
+          "</span>" +
+          '<strong style="font-size:13px;">' +
+          bt.label +
+          "</strong>" +
+          '<div style="margin-left:auto;display:flex;gap:6px;">' +
+          '<button class="btn btn-ghost btn-sm btn-icon" ' +
+          "onclick=\"CS.moveItem('" +
+          base +
+          ".blocks'," +
+          i +
+          ',-1);window._refreshStoryBuilder()">\u2191</button>' +
+          '<button class="btn btn-ghost btn-sm btn-icon" ' +
+          "onclick=\"CS.moveItem('" +
+          base +
+          ".blocks'," +
+          i +
+          ',1);window._refreshStoryBuilder()">\u2193</button>' +
+          '<button class="btn btn-danger btn-sm" ' +
+          "onclick=\"CS.removeItem('" +
+          base +
+          ".blocks'," +
+          i +
+          ');window._refreshStoryBuilder()">Remove</button>' +
+          "</div>" +
+          "</div>" +
+          '<div class="form-grid" style="grid-template-columns:1fr 1fr;gap:10px;">' +
+          bt.fields(base_b, b) +
+          "</div>" +
+          "</div>"
+        );
+      })
+      .join("");
+
+    document.getElementById("drawerBody").innerHTML =
+      '<div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">' +
+      field("Eyebrow", input(base + ".eyebrow", story.eyebrow)) +
+      '<div class="field" style="grid-column:span 2">' +
+      field("Story heading", input(base + ".heading", story.heading)) +
+      "</div>" +
+      "</div>" +
+      '<div style="margin-bottom:12px;">' +
+      '<div style="font-size:12px;font-weight:bold;color:var(--txt2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Add block</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
+      typeOpts +
+      "</div>" +
+      "</div>" +
+      '<div id="story-blocks">' +
+      blockRows +
+      "</div>";
+  }
+
+  window._addStoryBlock = function (type) {
+    var bt = BLOCK_TYPES[type];
+    if (!bt) return;
+    CS.addItem(window._storyBase + ".blocks", Object.assign({}, bt.defaults));
+    window._refreshStoryBuilder();
+  };
   // Delegated listener — handles pick-image / pick-video buttons
   // Covers both drawer body (initiative drawers) and main area (panel-body pickers like REA Story)
   document.addEventListener("DOMContentLoaded", function () {
@@ -790,11 +1093,7 @@
     var bpm = rs.bpm || {};
 
     document.getElementById("mainArea").innerHTML =
-      header(
-        "REA Story",
-        "What REA is",
-        toolbar("reastory"),
-      ) +
+      header("REA Story", "What REA is", toolbar("reastory")) +
       '<div class="panel-body">' +
       card(
         "Teaser card",
@@ -804,12 +1103,9 @@
             "Section label",
             input("reaStory.teaser.sectionLabel", teaser.sectionLabel),
           ) +
-          field(
-            "Headline",
-            input("reaStory.teaser.headline", teaser.headline),
-          ),
-          // field("Link href", input("reaStory.teaser.href", teaser.href)) +
-          // "</div>",
+          field("Headline", input("reaStory.teaser.headline", teaser.headline)),
+        // field("Link href", input("reaStory.teaser.href", teaser.href)) +
+        // "</div>",
       ) +
       card(
         "Panel 1 — What REA is",
@@ -937,7 +1233,8 @@
             ',1);window.renderPortfolio()">\u2193</button>' +
             '<button class="btn btn-ghost btn-sm" onclick="_portfolioInitiativeDrawer(' +
             i +
-            ')">Edit</button>',
+            ')">Edit</button>' +
+            '<button class="btn btn-primary btn-sm" onclick="_openStoryBuilder(' + i + ')">Story \u2192</button>'
         );
       })
       .join("");
