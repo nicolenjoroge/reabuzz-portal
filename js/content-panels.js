@@ -231,7 +231,11 @@
         columns: ["Name", "Value"],
         rows: [],
       },
+
+      
       fields: function (base, b) {
+        console.log('rows:', JSON.stringify(b.rows));
+      console.log('cols:', JSON.stringify(b.columns));
         var mode = b.displayMode || "cards";
         var cols = b.columns || ["Name", "Value"];
         var rows = b.rows || [];
@@ -587,8 +591,8 @@
           title: "Top document types",
           displayMode: "table",
           columns: ["Document", "Count"],
-          rows: usage.topDocumentTypes.map(function (d) {
-            return [d.name, String(d.count)];
+          rows: usage.topDocumentTypes.map(function (t) {
+            return [d.name, String(t.count)];
           }),
         });
       }
