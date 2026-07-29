@@ -834,70 +834,33 @@
         "')\">Add story now</button>";
   };
 
-  window._openFeaturedStoryDrawer = function (item, idx, refId) {
-    // Accept either a direct item or a refId lookup
-    var d = CS.get();
-    var items =
-      (d.innovation &&
-        d.innovation.topInitiatives &&
-        d.innovation.topInitiatives.items) ||
-      [];
+ window._openFeaturedStoryDrawer = function (item, idx, refId) {
+  var d     = CS.get();
+  var items = (d.innovation && d.innovation.topInitiatives && d.innovation.topInitiatives.items) || [];
 
-    if (!item && refId) {
-      item = items.find(function (it) {
-        return it.id === refId;
-      });
-      idx = items.indexOf(item);
-    }
-    if (!item) return;
+  if (!item && refId) {
+    item = items.find(function (it) { return it.id === refId; });
+    idx  = items.indexOf(item);
+  }
+  if (!item) return;
 
-    var story = item.story || {};
-    var base = "innovation.topInitiatives.items." + idx + ".story";
+  // Delegate entirely to _openStoryBuilder — same drawer, same block editor
+  // The warning banner is injected inside _renderStoryBuilder
+  _openStoryBuilder(idx);
 
-    document.getElementById("drawerTitle").textContent =
-      "Featured story \u2014 " + item.title;
-    document.getElementById("drawerSub").textContent =
-      "innovation.topInitiatives.items." + idx + ".story";
-    document.getElementById("drawerDelete").style.display = "none";
-    document.getElementById("drawerBody").innerHTML =
-      '<div style="background:#fff8e1;border:1px solid #f0c040;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;">' +
-      "\u26a0\ufe0f This story appears when visitors click the featured initiative card on the live site. " +
-      "Make sure it's compelling before publishing." +
-      "</div>" +
-      '<div class="form-grid" style="grid-template-columns:1fr;gap:12px;">' +
-      field(
-        "Eyebrow tag",
-        input(base + ".eyebrow", story.eyebrow, "e.g. Innovation"),
-      ) +
-      field("Story heading", input(base + ".heading", story.heading)) +
-      '<div class="field"><label>Story body</label>' +
-      textarea(base + ".body", story.body, 6) +
-      "</div>" +
-      field(
-        "Closing line",
-        input(base + ".closing.line", story.closing && story.closing.line),
-      ) +
-      '<div class="field"><label>Closing body</label>' +
-      textarea(base + ".closing.body", story.closing && story.closing.body, 3) +
-      "</div>" +
-      imagePicker(base + ".__heroImage", story.__heroImage, "prev_feat_story") +
-      "</div>";
+  // Override the drawer title and sub to indicate this is the featured story
+  document.getElementById('drawerTitle').textContent = 'Featured story \u2014 ' + item.title;
+  document.getElementById('drawerSub').textContent   =
+    '\u26a0\ufe0f This story appears on the live site when visitors click the featured card. ' +
+    'Make it compelling before publishing.';
 
-    document.getElementById("drawerOverlay").className = "drawer-overlay open";
-
-    _wirePickers(
-      "btn_prev_feat_story",
-      base + ".__heroImage",
-      "prev_feat_story",
-      "image",
-    );
-
-    _drawerSave = function () {
-      showToast("Story saved \u2713", "success");
-      closeDrawer();
-      _checkFeaturedStory(item.id);
-    };
+  // Override _drawerSave to also run the story check on close
+  var _originalSave = _drawerSave;
+  _drawerSave = function () {
+    if (_originalSave) _originalSave();
+    _checkFeaturedStory(item.id);
   };
+};
 
   // -------------------------------------------------------------------------
   // LANDING PAGE
