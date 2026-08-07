@@ -9,47 +9,91 @@ var API_BASE =
     ? "http://localhost:5000/api"
     : "https://rea-buzz-api-layers-fkbra6a3dmahckh0.southafricanorth-01.azurewebsites.net/api";
 
+// ===== MSAL CONFIG =====
+var msalConfig = {
+  auth: {
+    clientId:    'e7b4c1f3-119f-4a5c-9a83-eca6314a7926',         
+    authority:   'https://login.microsoftonline.com/6a28e8b9-ea23-417c-b7c9-7d38478b2a89',
+    redirectUri: window.location.origin,   
+  },
+  cache: {
+    cacheLocation:       'sessionStorage',
+    storeAuthStateInCookie: false,
+  }
+};
+
+var msalInstance = new msal.PublicClientApplication(msalConfig);
+
+var LOGIN_REQUEST = {
+  scopes: ['openid', 'profile', 'email', 'User.Read'],
+};
+
+// ===== AUTH =====
 function loadUser() {
-  var isLocal =
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1";
+  var isLocal = window.location.hostname === 'localhost' ||
+                window.location.hostname === '127.0.0.1';
 
   if (isLocal) {
-    window.currentUser = { name: "Local Dev", email: "dev@local", id: "dev" };
-    document.getElementById("userName").textContent = "Local Dev";
-    document.getElementById("userAvatar").textContent = "D";
+    window.currentUser = { name: 'Local Dev', email: 'dev@local', id: 'dev' };
+    document.getElementById('userName').textContent   = 'Local Dev';
+    document.getElementById('userAvatar').textContent = 'D';
     return Promise.resolve();
   }
 
-  return fetch("/.auth/me")
-    .then(function (r) {
-      return r.json();
-    })
-    .then(function (data) {
-      var p = data.clientPrincipal;
-      if (!p) {
-        window.location.href = "/.auth/login/aad";
-        return;
+  // Handle redirect response first (MSAL redirects back after login)
+  return msalInstance.handleRedirectPromise()
+    .then(function (response) {
+      var account = null;
+
+      if (response) {
+        // Just came back from login redirect
+        account = response.account;
+        msalInstance.setActiveAccount(account);
+      } else {
+        // Check if already logged in
+        var accounts = msalInstance.getAllAccounts();
+        if (accounts.length === 0) {
+          // No account — redirect to login
+          msalInstance.loginRedirect(LOGIN_REQUEST);
+          return;
+        }
+        account = accounts[0];
+        msalInstance.setActiveAccount(account);
       }
+
+      // Set user info
       window.currentUser = {
-        name: p.userDetails,
-        email: p.userDetails,
-        id: p.userId,
+        name:  account.name || account.username,
+        email: account.username,
+        id:    account.localAccountId,
       };
-      document.getElementById("userName").textContent = p.userDetails;
-      document.getElementById("userAvatar").textContent = (p.userDetails || "U")
-        .charAt(0)
-        .toUpperCase();
+      document.getElementById('userName').textContent   = account.name || account.username;
+      document.getElementById('userAvatar').textContent =
+        (account.name || account.username || 'U').charAt(0).toUpperCase();
+
+      // Acquire token silently for API calls
+      return msalInstance.acquireTokenSilent({
+        scopes:  LOGIN_REQUEST.scopes,
+        account: account,
+      }).then(function (tokenResponse) {
+        window._authToken = tokenResponse.accessToken;
+      }).catch(function () {
+        // Silent token acquisition failed — do interactive
+        return msalInstance.acquireTokenRedirect(LOGIN_REQUEST);
+      });
     })
-    .catch(function () {
-      window.location.href = "/.auth/login/aad";
+    .catch(function (e) {
+      console.error('MSAL error:', e);
+      msalInstance.loginRedirect(LOGIN_REQUEST);
     });
 }
 
-// Replace showPanel('landing') at the bottom with:
-loadUser().then(function () {
-  showPanel("landing");
-});
+// Sign out
+function signOut() {
+  msalInstance.logoutRedirect({
+    postLogoutRedirectUri: window.location.origin,
+  });
+}
 
 // ===== ROUTING =====
 function showPanel(panel) {

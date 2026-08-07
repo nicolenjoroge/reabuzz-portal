@@ -50,10 +50,15 @@
   function _req(method, path, body) {
     var opts = {
       method: method,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
     };
+    // Attach token if available
+    if (window._authToken) {
+      opts.headers["Authorization"] = "Bearer " + window._authToken;
+    }
     if (body !== undefined) opts.body = JSON.stringify(body);
-
     return fetch(API + path, opts).then(function (r) {
       if (!r.ok) {
         return r.json().then(function (b) {
@@ -497,19 +502,11 @@
     _req("GET", "/draft")
       .then(function (data) {
         _draft = data;
-        console.log("CS: draft loaded", Object.keys(data));
-
-        // Tell content-panels.js the data is ready by firing render()
+        // Log access for audit — fire and forget, don't block render
+        _req("POST", "/audit-access", {
+          user: (window.currentUser && window.currentUser.name) || "unknown",
+        }).catch(function () {});
         if (window.render) window.render();
-
-        if (data.restoredFrom) {
-          _toast(
-            "Draft restored from " +
-              data.restoredFrom +
-              " \u2014 publish when ready.",
-            "info",
-          );
-        }
       })
       .catch(function (e) {
         console.error("CS: failed to load draft \u2014", e.message);
