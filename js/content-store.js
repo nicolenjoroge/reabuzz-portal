@@ -112,9 +112,9 @@
   // enabled=false → button dimmed, disabled (no change yet / just published / just discarded)
   function _setPublishEnabled(enabled) {
     document.querySelectorAll(".btn-publish").forEach(function (btn) {
-      btn.disabled      = !enabled;
+      btn.disabled = !enabled;
       btn.style.opacity = enabled ? "" : "0.5";
-      btn.title         = enabled ? "" : "Make a change first";
+      btn.title = enabled ? "" : "Make a change first";
       if (!enabled) btn.textContent = "\u2191 Publish";
     });
   }
@@ -170,7 +170,7 @@
       innovation: "portfolio",
       spotlight: "spotlight",
       whatsNew: "whatsnew",
-      campaigns:  'campaigns',
+      campaigns: "campaigns",
     };
     var section = path.split(".")[0];
     if (window.markDraft && sectionMap[section]) {
@@ -178,7 +178,7 @@
     }
 
     // Enable publish buttons now that a change has been made
-    _setPublishEnabled(true)
+    _setPublishEnabled(true);
     _scheduleSave();
   }
 
@@ -239,9 +239,9 @@
 
   function publish(section) {
     if (!_draft) return;
-    var user = window.currentRole === "bpm" ? "BPM User" : "Editorial User";
-    // Disable all publish buttons
-    
+    // In content-store.js publish():
+    var user = (window.currentUser && window.currentUser.name) || "unknown";
+
     document.querySelectorAll(".btn-publish").forEach(function (btn) {
       btn.disabled = true;
       btn.textContent = "Publishing\u2026";
@@ -270,11 +270,11 @@
         });
 
         // Disable publish button:
-        _setPublishEnabled(false)
+        _setPublishEnabled(false);
       })
       .catch(function (e) {
         _toast("Publish failed: " + e.message, "danger");
-        _setPublishEnabled(true);  // re-enable so user can try again
+        _setPublishEnabled(true); // re-enable so user can try again
       });
   }
 
@@ -293,7 +293,12 @@
         var liveVersion = "v" + manifest.liveVersion;
 
         // Rollback draft to live version but DON'T update liveVersion in manifest
-        return _req("POST", "/discard", { version: liveVersion });
+        // In discard() when calling POST /api/discard:
+        _req("POST", "/discard", {
+          version: "v" + manifest.liveVersion,
+          rolledBackBy:
+            (window.currentUser && window.currentUser.name) || "unknown",
+        });
       })
       .then(function (data) {
         if (!data) return;
@@ -306,7 +311,7 @@
         document.querySelectorAll(".draft-dot").forEach(function (dot) {
           dot.style.display = "none";
         });
-        _setPublishEnabled(false)
+        _setPublishEnabled(false);
         if (window.render) window.render();
       })
       .catch(function (e) {
@@ -328,7 +333,11 @@
     )
       return;
 
-    _req("POST", "/rollback", { version: version })
+    _req("POST", "/rollback", {
+      version: version,
+      rolledBackBy:
+        (window.currentUser && window.currentUser.name) || "unknown", // ← add this
+    })
       .then(function () {
         return _req("GET", "/draft");
       })
@@ -450,7 +459,7 @@
     };
 
     // Disable publish buttons until a change is made
-    _setPublishEnabled(false)
+    _setPublishEnabled(false);
   }
 
   // -------------------------------------------------------------------------
@@ -473,7 +482,7 @@
     _patch();
 
     // 1. Fetch media config so CS.mediaUrl() works immediately
-   fetch(API + "/media-url")
+    fetch(API + "/media-url")
       .then(function (r) {
         return r.json();
       })

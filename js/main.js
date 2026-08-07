@@ -9,32 +9,50 @@ var API_BASE =
     ? "http://localhost:5000/api"
     : "https://rea-buzz-api-layers-fkbra6a3dmahckh0.southafricanorth-01.azurewebsites.net/api";
 
-// ===== ROLE MANAGEMENT =====
-function setRole(role) {
-  currentRole = role;
-  document.getElementById("btnBpm").className = role === "bpm" ? "active" : "";
-  document.getElementById("btnEdit").className =
-    role === "editorial" ? "active" : "";
-  document.getElementById("roleBadge").className =
-    "role-badge " + (role === "bpm" ? "bpm" : "editorial");
-  document.getElementById("roleBadge").textContent =
-    role === "bpm" ? "BPM" : "Editorial";
-  document.getElementById("userAvatar").textContent =
-    role === "bpm" ? "BU" : "EU";
-  document.getElementById("userName").textContent =
-    role === "bpm" ? "BPM User" : "Editorial User";
-  document.getElementById("navDashboardSection").style.display =
-    role === "bpm" ? "" : "none";
-  if (role === "editorial" && currentPanel.startsWith("stream_"))
-    showPanel("landing");
-  else showPanel(currentPanel);
+function loadUser() {
+  var isLocal =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
+
+  if (isLocal) {
+    window.currentUser = { name: "Local Dev", email: "dev@local", id: "dev" };
+    document.getElementById("userName").textContent = "Local Dev";
+    document.getElementById("userAvatar").textContent = "D";
+    return Promise.resolve();
+  }
+
+  return fetch("/.auth/me")
+    .then(function (r) {
+      return r.json();
+    })
+    .then(function (data) {
+      var p = data.clientPrincipal;
+      if (!p) {
+        window.location.href = "/.auth/login/aad";
+        return;
+      }
+      window.currentUser = {
+        name: p.userDetails,
+        email: p.userDetails,
+        id: p.userId,
+      };
+      document.getElementById("userName").textContent = p.userDetails;
+      document.getElementById("userAvatar").textContent = (p.userDetails || "U")
+        .charAt(0)
+        .toUpperCase();
+    })
+    .catch(function () {
+      window.location.href = "/.auth/login/aad";
+    });
 }
+
+// Replace showPanel('landing') at the bottom with:
+loadUser().then(function () {
+  showPanel("landing");
+});
 
 // ===== ROUTING =====
 function showPanel(panel) {
-  if (panel.startsWith("stream_") && currentRole !== "bpm") {
-    return;
-  }
   currentPanel = panel;
   document.querySelectorAll(".nav-item").forEach(function (el) {
     el.classList.toggle("active", el.dataset.panel === panel);
@@ -61,6 +79,9 @@ function render() {
       break;
     case "campaigns":
       renderCampaigns();
+      break;
+    case "audit":
+      renderAuditLog();
       break;
     case "media":
       renderMedia();
@@ -626,6 +647,47 @@ function closeDrawer(e) {
   document.getElementById("drawerOverlay").className = "drawer-overlay";
   document.getElementById("drawerDelete").style.display = "";
   window._editingType = null;
+}
+
+// ========= AUDIT LOG =====
+function renderAuditLog() {
+  document.getElementById('mainArea').innerHTML =
+    header('Audit log', 'Portal access and publish history.', '') +
+    '<div class="panel-body"><div class="table-wrap">' +
+    '<div id="audit-table-body" style="padding:20px;color:var(--txt2);font-size:13px;">Loading\u2026</div>' +
+    '</div></div>';
+
+  fetch(API_BASE + '/audit/log')
+    .then(function (r) { return r.json(); })
+    .then(function (entries) {
+      if (!entries.length) {
+        document.getElementById('audit-table-body').innerHTML = 'No audit entries yet.';
+        return;
+      }
+      document.getElementById('audit-table-body').innerHTML =
+        '<table><thead><tr>' +
+        '<th>Action</th><th>User</th><th>Detail</th><th>Time</th>' +
+        '</tr></thead><tbody>' +
+        entries.map(function (e) {
+          var detail = e.stream
+            ? e.stream + ' (' + e.records + ' records)'
+            : e.version || e.liveVersion || '';
+          var time = e.publishedAt || e.rolledBackAt || e.exportedAt || e.accessedAt || '';
+          var user = e.user || e.publishedBy || e.rolledBackBy || e.exportedBy || '\u2014';
+          return '<tr>' +
+            '<td><span class="pill pill-' + (e.action || 'access') + '">' + (e.action || '') + '</span></td>' +
+            '<td>' + user + '</td>' +
+            '<td style="color:var(--txt2);font-size:12px;">' + detail + '</td>' +
+            '<td class="td-mono" style="font-size:11px;">' +
+              (time ? new Date(time).toLocaleString() : '\u2014') +
+            '</td>' +
+          '</tr>';
+        }).join('') +
+        '</tbody></table>';
+    })
+    .catch(function () {
+      document.getElementById('audit-table-body').innerHTML = 'Could not load audit log.';
+    });
 }
 
 // ===== TOAST =====

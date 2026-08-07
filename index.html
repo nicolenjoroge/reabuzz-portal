@@ -24,12 +24,7 @@
       <div class="topbar-subtitle">Portal</div>
     </div>
     <div class="topbar-right">
-      <!-- Demo role toggle -->
-      <div class="role-toggle">
-        <button id="btnBpm" class="active" onclick="setRole('bpm')">BPM</button>
-        <button id="btnEdit" onclick="setRole('editorial')">Editorial</button>
-      </div>
-      <span class="role-badge bpm" id="roleBadge">BPM</span>
+      <!-- Demo role toggle -->     
       <div class="user-pill">
         <div class="user-avatar" id="userAvatar">BU</div>
         <span class="user-name" id="userName">BPM User</span>
@@ -41,36 +36,6 @@
 
     <!-- SIDE NAV -->
     <nav class="sidenav">
-
-      <!-- <div class="sidenav-section" id="navDashboardSection">
-        <div class="sidenav-section-label"
-          style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;"
-          onclick="toggleDashboardNav()">
-          Dashboard
-          <span id="dashNavArrow" style="font-size:11px;color:var(--txt2);transition:transform .2s;">▼</span>
-        </div>
-        <div id="dashNavItems">
-          <div class="nav-item nav-sub" data-panel="stream_rpa" onclick="showPanel('stream_rpa')">
-            RPA
-          </div>
-          <div class="nav-item nav-sub" data-panel="stream_powerapps" onclick="showPanel('stream_powerapps')">
-            PowerApps
-          </div>
-          <div class="nav-item nav-sub" data-panel="stream_poweragents" onclick="showPanel('stream_poweragents')">
-            Power Agents
-          </div>
-          <div class="nav-item nav-sub" data-panel="stream_ibps" onclick="showPanel('stream_ibps')">
-            IBPS
-          </div>
-          <div class="nav-item nav-sub" data-panel="stream_docusign" onclick="showPanel('stream_docusign')">
-            DocuSign
-          </div>
-          <div class="nav-item nav-sub" data-panel="stream_ai" onclick="showPanel('stream_ai')">
-            AI
-          </div>
-        </div>
-      </div> -->
-
       <div class="sidenav-section">
         <div class="sidenav-section-label">Content</div>
         <div class="nav-item" data-panel="landing" onclick="showPanel('landing')">
@@ -99,6 +64,9 @@
         </div>
         <div class="nav-item" data-panel="media" onclick="showPanel('media')">
           Media library
+        </div>
+        <div class="nav-item" data-panel="audit" onclick="showPanel('audit')">
+          Audit log
         </div>
       </div>
     </nav>
