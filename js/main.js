@@ -40,52 +40,47 @@ function loadUser() {
     return Promise.resolve();
   }
 
-  // Handle redirect response first (MSAL redirects back after login)
-  return msalInstance.handleRedirectPromise()
-    .then(function (response) {
-      var account = null;
+  return msalReady.then(function (instance) {
+    return instance.handleRedirectPromise()
+      .then(function (response) {
+        var account = null;
 
-      if (response) {
-        // Just came back from login redirect
-        account = response.account;
-        msalInstance.setActiveAccount(account);
-      } else {
-        // Check if already logged in
-        var accounts = msalInstance.getAllAccounts();
-        if (accounts.length === 0) {
-          // No account — redirect to login
-          msalInstance.loginRedirect(LOGIN_REQUEST);
-          return;
+        if (response) {
+          account = response.account;
+          instance.setActiveAccount(account);
+        } else {
+          var accounts = instance.getAllAccounts();
+          if (accounts.length === 0) {
+            instance.loginRedirect(LOGIN_REQUEST);
+            return;
+          }
+          account = accounts[0];
+          instance.setActiveAccount(account);
         }
-        account = accounts[0];
-        msalInstance.setActiveAccount(account);
-      }
 
-      // Set user info
-      window.currentUser = {
-        name:  account.name || account.username,
-        email: account.username,
-        id:    account.localAccountId,
-      };
-      document.getElementById('userName').textContent   = account.name || account.username;
-      document.getElementById('userAvatar').textContent =
-        (account.name || account.username || 'U').charAt(0).toUpperCase();
+        window.currentUser = {
+          name:  account.name || account.username,
+          email: account.username,
+          id:    account.localAccountId,
+        };
+        document.getElementById('userName').textContent   = account.name || account.username;
+        document.getElementById('userAvatar').textContent =
+          (account.name || account.username || 'U').charAt(0).toUpperCase();
 
-      // Acquire token silently for API calls
-      return msalInstance.acquireTokenSilent({
-        scopes:  LOGIN_REQUEST.scopes,
-        account: account,
-      }).then(function (tokenResponse) {
-        window._authToken = tokenResponse.accessToken;
-      }).catch(function () {
-        // Silent token acquisition failed — do interactive
-        return msalInstance.acquireTokenRedirect(LOGIN_REQUEST);
+        return instance.acquireTokenSilent({
+          scopes:  LOGIN_REQUEST.scopes,
+          account: account,
+        }).then(function (tokenResponse) {
+          window._authToken = tokenResponse.accessToken;
+        }).catch(function () {
+          return instance.acquireTokenRedirect(LOGIN_REQUEST);
+        });
+      })
+      .catch(function (e) {
+        console.error('MSAL error:', e);
+        instance.loginRedirect(LOGIN_REQUEST);
       });
-    })
-    .catch(function (e) {
-      console.error('MSAL error:', e);
-      msalInstance.loginRedirect(LOGIN_REQUEST);
-    });
+  });
 }
 
 // Sign out
@@ -755,4 +750,6 @@ function showToast(msg, type) {
 }
 
 // ===== INIT =====
+loadUser.then(function () {
 showPanel("landing");
+})
