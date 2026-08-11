@@ -109,19 +109,6 @@ function _applyUserToUI(name, email) {
   if (avatarEl) avatarEl.textContent = (name || "U").charAt(0).toUpperCase();
 }
 
-// Sign out
-function signOut() {
-  if (!msalInstance) {
-    msalReady.then(function () {
-      signOut();
-    });
-    return;
-  }
-  msalInstance.logoutRedirect({
-    postLogoutRedirectUri:
-      "https://login.microsoftonline.com/6a28e8b9-ea23-417c-b7c9-7d38478b2a89/oauth2/v2.0/logout",
-  });
-}
 
 // ===== ROUTING =====
 function showPanel(panel) {
