@@ -12,45 +12,49 @@ var API_BASE =
 // ===== MSAL CONFIG =====
 var msalConfig = {
   auth: {
-    clientId:    'e7b4c1f3-119f-4a5c-9a83-eca6314a7926',         
-    authority:   'https://login.microsoftonline.com/6a28e8b9-ea23-417c-b7c9-7d38478b2a89',
-    redirectUri: window.location.origin,   
+    clientId: "e7b4c1f3-119f-4a5c-9a83-eca6314a7926",
+    authority:
+      "https://login.microsoftonline.com/6a28e8b9-ea23-417c-b7c9-7d38478b2a89",
+    redirectUri: window.location.origin,
   },
   cache: {
-    cacheLocation:       'sessionStorage',
+    cacheLocation: "sessionStorage",
     storeAuthStateInCookie: false,
-  }
+  },
 };
 
 var LOGIN_REQUEST = {
-  scopes: ['openid', 'profile', 'email', 'User.Read'],
+  scopes: ["openid", "profile", "email", "User.Read"],
 };
 
 var msalInstance = null;
 
-var msalReady = msal.PublicClientApplication
-  .createPublicClientApplication(msalConfig)
+var msalReady = msal.PublicClientApplication.createPublicClientApplication(
+  msalConfig,
+)
   .then(function (instance) {
     msalInstance = instance;
     return instance;
   })
   .catch(function (e) {
-    console.error('MSAL init failed:', e);
+    console.error("MSAL init failed:", e);
   });
 
 // ===== AUTH =====
 function loadUser() {
-  var isLocal = window.location.hostname === 'localhost' ||
-                window.location.hostname === '127.0.0.1';
+  var isLocal =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
 
   if (isLocal) {
-    window.currentUser = { name: 'Local Dev', email: 'dev@local', id: 'dev' };
-    _applyUserToUI('Local Dev', 'dev@local');
+    window.currentUser = { name: "Local Dev", email: "dev@local", id: "dev" };
+    _applyUserToUI("Local Dev", "dev@local");
     return Promise.resolve();
   }
 
   return msalReady.then(function (instance) {
-    return instance.handleRedirectPromise()
+    return instance
+      .handleRedirectPromise()
       .then(function (response) {
         var account = null;
 
@@ -67,58 +71,65 @@ function loadUser() {
           instance.setActiveAccount(account);
         }
 
-        var email = account.username || '';
+        var email = account.username || "";
         var fullName = account.name || _nameFromEmail(email);
 
         window.currentUser = {
-          name:  fullName,
+          name: fullName,
           email: email,
-          id:    account.localAccountId,
+          id: account.localAccountId,
         };
 
         _applyUserToUI(fullName, email);
 
-        return instance.acquireTokenSilent({
-          scopes:  LOGIN_REQUEST.scopes,
-          account: account,
-        })
-        .then(function (tokenResponse) {
-          window._authToken = tokenResponse.accessToken;
-        })
-        .catch(function () {
-          return instance.acquireTokenRedirect(LOGIN_REQUEST);
-        });
+        return instance
+          .acquireTokenSilent({
+            scopes: LOGIN_REQUEST.scopes,
+            account: account,
+          })
+          .then(function (tokenResponse) {
+            window._authToken = tokenResponse.accessToken;
+          })
+          .catch(function () {
+            return instance.acquireTokenRedirect(LOGIN_REQUEST);
+          });
       })
       .catch(function (e) {
-        console.error('MSAL error:', e);
+        console.error("MSAL error:", e);
         instance.loginRedirect(LOGIN_REQUEST);
       });
   });
 }
 
 function _nameFromEmail(email) {
-  if (!email) return 'User';
-  var local = email.split('@')[0];
-  return local.split(/[._-]/).map(function (part) {
-    return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
-  }).join(' ');
+  if (!email) return "User";
+  var local = email.split("@")[0];
+  return local
+    .split(/[._-]/)
+    .map(function (part) {
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join(" ");
 }
 
 function _applyUserToUI(name, email) {
-  var nameEl = document.getElementById('userName');
-  var avatarEl = document.getElementById('userAvatar');
+  var nameEl = document.getElementById("userName");
+  var avatarEl = document.getElementById("userAvatar");
   if (nameEl) nameEl.textContent = name;
-  if (avatarEl) avatarEl.textContent = (name || 'U').charAt(0).toUpperCase();
+  if (avatarEl) avatarEl.textContent = (name || "U").charAt(0).toUpperCase();
 }
 
 // Sign out
 function signOut() {
-  if(!msalInstance) {
-    msalReady.then(function() {signOut(); })
+  if (!msalInstance) {
+    msalReady.then(function () {
+      signOut();
+    });
     return;
   }
   msalInstance.logoutRedirect({
-    postLogoutRedirectUri: 'https://login.microsoftonline.com/6a28e8b9-ea23-417c-b7c9-7d38478b2a89/oauth2/v2.0/logout',
+    postLogoutRedirectUri:
+      "https://login.microsoftonline.com/6a28e8b9-ea23-417c-b7c9-7d38478b2a89/oauth2/v2.0/logout",
   });
 }
 
@@ -722,42 +733,68 @@ function closeDrawer(e) {
 
 // ========= AUDIT LOG =====
 function renderAuditLog() {
-  document.getElementById('mainArea').innerHTML =
-    header('Audit log', 'Portal access and publish history.', '') +
+  document.getElementById("mainArea").innerHTML =
+    header("Audit log", "Portal access and publish history.", "") +
     '<div class="panel-body"><div class="table-wrap">' +
     '<div id="audit-table-body" style="padding:20px;color:var(--txt2);font-size:13px;">Loading\u2026</div>' +
-    '</div></div>';
+    "</div></div>";
 
-  fetch(API_BASE + '/audit/log')
-    .then(function (r) { return r.json(); })
+  fetch(API_BASE + "/audit-log")
+    .then(function (r) {
+      return r.json();
+    })
     .then(function (entries) {
       if (!entries.length) {
-        document.getElementById('audit-table-body').innerHTML = 'No audit entries yet.';
+        document.getElementById("audit-table-body").innerHTML =
+          "No audit entries yet.";
         return;
       }
-      document.getElementById('audit-table-body').innerHTML =
-        '<table><thead><tr>' +
-        '<th>Action</th><th>User</th><th>Detail</th><th>Time</th>' +
-        '</tr></thead><tbody>' +
-        entries.map(function (e) {
-          var detail = e.stream
-            ? e.stream + ' (' + e.records + ' records)'
-            : e.version || e.liveVersion || '';
-          var time = e.publishedAt || e.rolledBackAt || e.exportedAt || e.accessedAt || '';
-          var user = e.user || e.publishedBy || e.rolledBackBy || e.exportedBy || '\u2014';
-          return '<tr>' +
-            '<td><span class="pill pill-' + (e.action || 'access') + '">' + (e.action || '') + '</span></td>' +
-            '<td>' + user + '</td>' +
-            '<td style="color:var(--txt2);font-size:12px;">' + detail + '</td>' +
-            '<td class="td-mono" style="font-size:11px;">' +
-              (time ? new Date(time).toLocaleString() : '\u2014') +
-            '</td>' +
-          '</tr>';
-        }).join('') +
-        '</tbody></table>';
+      document.getElementById("audit-table-body").innerHTML =
+        "<table><thead><tr>" +
+        "<th>Action</th><th>User</th><th>Detail</th><th>Time</th>" +
+        "</tr></thead><tbody>" +
+        entries
+          .map(function (e) {
+            var detail = e.stream
+              ? e.stream + " (" + e.records + " records)"
+              : e.version || e.liveVersion || "";
+            var time =
+              e.publishedAt ||
+              e.rolledBackAt ||
+              e.exportedAt ||
+              e.accessedAt ||
+              "";
+            var user =
+              e.user ||
+              e.publishedBy ||
+              e.rolledBackBy ||
+              e.exportedBy ||
+              "\u2014";
+            return (
+              "<tr>" +
+              '<td><span class="pill pill-' +
+              (e.action || "access") +
+              '">' +
+              (e.action || "") +
+              "</span></td>" +
+              "<td>" +
+              user +
+              "</td>" +
+              '<td style="color:var(--txt2);font-size:12px;">' +
+              detail +
+              "</td>" +
+              '<td class="td-mono" style="font-size:11px;">' +
+              (time ? new Date(time).toLocaleString() : "\u2014") +
+              "</td>" +
+              "</tr>"
+            );
+          })
+          .join("") +
+        "</tbody></table>";
     })
     .catch(function () {
-      document.getElementById('audit-table-body').innerHTML = 'Could not load audit log.';
+      document.getElementById("audit-table-body").innerHTML =
+        "Could not load audit log.";
     });
 }
 
@@ -783,5 +820,5 @@ function showToast(msg, type) {
 
 // ===== INIT =====
 loadUser().then(function () {
-showPanel("landing");
-})
+  showPanel("landing");
+});
