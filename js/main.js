@@ -796,5 +796,18 @@ function showToast(msg, type) {
 
 // ===== INIT =====
 loadUser().then(function () {
-  showPanel("landing");
+  // Log access now that currentUser is set
+  if (window.currentUser && window.currentUser.name) {
+    fetch(API_BASE + '/audit-access', {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': window._authToken ? 'Bearer ' + window._authToken : '',
+      },
+      body: JSON.stringify({
+        user: window.currentUser.name,
+      }),
+    }).catch(function () {});
+  }
+  showPanel('landing');
 });

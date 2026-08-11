@@ -503,9 +503,6 @@
       .then(function (data) {
         _draft = data;
         // Log access for audit — fire and forget, don't block render
-        _req("POST", "/audit-access", {
-          user: (window.currentUser && window.currentUser.name) || "unknown",
-        }).catch(function () {});
         if (window.render) window.render();
       })
       .catch(function (e) {
