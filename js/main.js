@@ -10,7 +10,7 @@ var API_BASE =
     : "https://rea-buzz-api-layers-fkbra6a3dmahckh0.southafricanorth-01.azurewebsites.net/api";
 
 // ===== MSAL CONFIG =====
-var msalConfig = {
+var MSAL_CONFIG = {
   auth: {
     clientId: "e7b4c1f3-119f-4a5c-9a83-eca6314a7926",
     authority:
@@ -28,7 +28,7 @@ var LOGIN_REQUEST = {
 };
 
 var msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
-var msalReady    = Promise.resolve(msalInstance);
+// var msalReady    = Promise.resolve(msalInstance);
 
 // ===== AUTH =====
 function loadUser() {
@@ -87,7 +87,7 @@ function loadUser() {
 
 function signOut() {
   msalInstance.logoutRedirect({
-    postLogoutRedirectUri: 'https://login.microsoftonline.com/6a28e8b9-ea23-417c-b7c9-7d38478b2a89/oauth2/v2.0/logout',
+    postLogoutRedirectUri: 'window.location.origin',
   });
 }
 
