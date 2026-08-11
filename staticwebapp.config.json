@@ -1,7 +1,9 @@
 {
-
   "globalHeaders": {
-    "Cache-Control": "no-store"
+    "Cache-Control": "no-store",
+    "Access-Control-Allow-Origin": "https://admin.reabuzz.api.ncbagroup.com/",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization"
   },
   "navigationFallback": {
     "rewrite": "/index.html",
