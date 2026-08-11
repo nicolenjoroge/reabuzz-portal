@@ -22,11 +22,21 @@ var msalConfig = {
   }
 };
 
-var msalInstance = new msal.PublicClientApplication(msalConfig);
-
 var LOGIN_REQUEST = {
   scopes: ['openid', 'profile', 'email', 'User.Read'],
 };
+
+var msalInstance = null;
+
+var msalReady = msal.PublicClientApplication
+  .createPublicClientApplication(msalConfig)
+  .then(function (instance) {
+    msalInstance = instance;
+    return instance;
+  })
+  .catch(function (e) {
+    console.error('MSAL init failed:', e);
+  });
 
 // ===== AUTH =====
 function loadUser() {
@@ -35,8 +45,7 @@ function loadUser() {
 
   if (isLocal) {
     window.currentUser = { name: 'Local Dev', email: 'dev@local', id: 'dev' };
-    document.getElementById('userName').textContent   = 'Local Dev';
-    document.getElementById('userAvatar').textContent = 'D';
+    _applyUserToUI('Local Dev', 'dev@local');
     return Promise.resolve();
   }
 
@@ -45,12 +54,12 @@ function loadUser() {
       .then(function (response) {
         var account = null;
 
-        if (response) {
+        if (response && response.account) {
           account = response.account;
           instance.setActiveAccount(account);
         } else {
           var accounts = instance.getAllAccounts();
-          if (accounts.length === 0) {
+          if (!accounts.length) {
             instance.loginRedirect(LOGIN_REQUEST);
             return;
           }
@@ -58,21 +67,25 @@ function loadUser() {
           instance.setActiveAccount(account);
         }
 
+        var email = account.username || '';
+        var fullName = account.name || _nameFromEmail(email);
+
         window.currentUser = {
-          name:  account.name || account.username,
-          email: account.username,
+          name:  fullName,
+          email: email,
           id:    account.localAccountId,
         };
-        document.getElementById('userName').textContent   = account.name || account.username;
-        document.getElementById('userAvatar').textContent =
-          (account.name || account.username || 'U').charAt(0).toUpperCase();
+
+        _applyUserToUI(fullName, email);
 
         return instance.acquireTokenSilent({
           scopes:  LOGIN_REQUEST.scopes,
           account: account,
-        }).then(function (tokenResponse) {
+        })
+        .then(function (tokenResponse) {
           window._authToken = tokenResponse.accessToken;
-        }).catch(function () {
+        })
+        .catch(function () {
           return instance.acquireTokenRedirect(LOGIN_REQUEST);
         });
       })
@@ -83,10 +96,29 @@ function loadUser() {
   });
 }
 
+function _nameFromEmail(email) {
+  if (!email) return 'User';
+  var local = email.split('@')[0];
+  return local.split(/[._-]/).map(function (part) {
+    return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+  }).join(' ');
+}
+
+function _applyUserToUI(name, email) {
+  var nameEl = document.getElementById('userName');
+  var avatarEl = document.getElementById('userAvatar');
+  if (nameEl) nameEl.textContent = name;
+  if (avatarEl) avatarEl.textContent = (name || 'U').charAt(0).toUpperCase();
+}
+
 // Sign out
 function signOut() {
+  if(!msalInstance) {
+    msalReady.then(function() {signOut(); })
+    return;
+  }
   msalInstance.logoutRedirect({
-    postLogoutRedirectUri: window.location.origin,
+    postLogoutRedirectUri: 'https://login.microsoftonline.com/6a28e8b9-ea23-417c-b7c9-7d38478b2a89/oauth2/v2.0/logout',
   });
 }
 
@@ -750,6 +782,6 @@ function showToast(msg, type) {
 }
 
 // ===== INIT =====
-loadUser.then(function () {
+loadUser().then(function () {
 showPanel("landing");
 })
