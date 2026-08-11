@@ -13,8 +13,7 @@ var API_BASE =
 var MSAL_CONFIG = {
   auth: {
     clientId: "e7b4c1f3-119f-4a5c-9a83-eca6314a7926",
-    authority:
-      "https://login.microsoftonline.com/6a28e8b9-ea23-417c-b7c9-7d38478b2a89",
+    authority: "https://login.microsoftonline.com/6a28e8b9-ea23-417c-b7c9-7d38478b2a89",
     redirectUri: window.location.origin,
   },
   cache: {
