@@ -27,77 +27,67 @@ var LOGIN_REQUEST = {
   scopes: ["openid", "profile", "email", "User.Read"],
 };
 
-var msalInstance = null;
-
-var msalReady = msal.PublicClientApplication.createPublicClientApplication(
-  msalConfig,
-)
-  .then(function (instance) {
-    msalInstance = instance;
-    return instance;
-  })
-  .catch(function (e) {
-    console.error("MSAL init failed:", e);
-  });
+var msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
+var msalReady    = Promise.resolve(msalInstance);
 
 // ===== AUTH =====
 function loadUser() {
-  var isLocal =
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1";
+  var isLocal = window.location.hostname === 'localhost' ||
+                window.location.hostname === '127.0.0.1';
 
   if (isLocal) {
-    window.currentUser = { name: "Local Dev", email: "dev@local", id: "dev" };
-    _applyUserToUI("Local Dev", "dev@local");
+    window.currentUser = { name: 'Local Dev', email: 'dev@local', id: 'dev' };
+    _applyUserToUI('Local Dev', 'dev@local');
     return Promise.resolve();
   }
 
-  return msalReady.then(function (instance) {
-    return instance
-      .handleRedirectPromise()
-      .then(function (response) {
-        var account = null;
+  return msalInstance.handleRedirectPromise()
+    .then(function (response) {
+      var account = null;
 
-        if (response && response.account) {
-          account = response.account;
-          instance.setActiveAccount(account);
-        } else {
-          var accounts = instance.getAllAccounts();
-          if (!accounts.length) {
-            instance.loginRedirect(LOGIN_REQUEST);
-            return;
-          }
-          account = accounts[0];
-          instance.setActiveAccount(account);
+      if (response && response.account) {
+        account = response.account;
+        msalInstance.setActiveAccount(account);
+      } else {
+        var accounts = msalInstance.getAllAccounts();
+        if (!accounts.length) {
+          msalInstance.loginRedirect(LOGIN_REQUEST);
+          return;
         }
+        account = accounts[0];
+        msalInstance.setActiveAccount(account);
+      }
 
-        var email = account.username || "";
-        var fullName = account.name || _nameFromEmail(email);
+      var email    = account.username || '';
+      var fullName = account.name || _nameFromEmail(email);
 
-        window.currentUser = {
-          name: fullName,
-          email: email,
-          id: account.localAccountId,
-        };
+      window.currentUser = {
+        name:  fullName,
+        email: email,
+        id:    account.localAccountId,
+      };
+      _applyUserToUI(fullName, email);
 
-        _applyUserToUI(fullName, email);
-
-        return instance
-          .acquireTokenSilent({
-            scopes: LOGIN_REQUEST.scopes,
-            account: account,
-          })
-          .then(function (tokenResponse) {
-            window._authToken = tokenResponse.accessToken;
-          })
-          .catch(function () {
-            return instance.acquireTokenRedirect(LOGIN_REQUEST);
-          });
+      return msalInstance.acquireTokenSilent({
+        scopes:  LOGIN_REQUEST.scopes,
+        account: account,
       })
-      .catch(function (e) {
-        console.error("MSAL error:", e);
-        instance.loginRedirect(LOGIN_REQUEST);
+      .then(function (tokenResponse) {
+        window._authToken = tokenResponse.accessToken;
+      })
+      .catch(function () {
+        msalInstance.acquireTokenRedirect(LOGIN_REQUEST);
       });
+    })
+    .catch(function (e) {
+      console.error('MSAL error:', e);
+      msalInstance.loginRedirect(LOGIN_REQUEST);
+    });
+}
+
+function signOut() {
+  msalInstance.logoutRedirect({
+    postLogoutRedirectUri: 'https://login.microsoftonline.com/6a28e8b9-ea23-417c-b7c9-7d38478b2a89/oauth2/v2.0/logout',
   });
 }
 
