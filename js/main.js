@@ -3,6 +3,8 @@ let currentRole = "bpm";
 let currentPanel = "landing";
 let drafts = {};
 
+window._authReady = false;
+
 var API_BASE =
   window.location.hostname === "localhost" ||
   window.location.hostname === "127.0.0.1"
@@ -43,9 +45,11 @@ function loadUser() {
   return msalInstance.handleRedirectPromise()
     .then(function (response) {
       var account = null;
+      var freshLogin = false;
 
       if (response && response.account) {
         account = response.account;
+        freshLogin = true;
         msalInstance.setActiveAccount(account);
       } else {
         var accounts = msalInstance.getAllAccounts();
@@ -73,6 +77,7 @@ function loadUser() {
       })
       .then(function (tokenResponse) {
         window._authToken = tokenResponse.accessToken;
+        window._freshLogin = freshLogin;
       })
       .catch(function () {
         msalInstance.acquireTokenRedirect(LOGIN_REQUEST);
@@ -797,7 +802,13 @@ function showToast(msg, type) {
 // ===== INIT =====
 loadUser().then(function () {
   // Log access now that currentUser is set
-  if (window.currentUser && window.currentUser.name) {
+  
+  window._authReady = true;
+
+  var overlay = document.getElementById('auth-loading');
+  if (overlay) overlay.style.display = 'none';
+
+  if (window._freshLogin && window.currentUser && window.currentUser.name) {
     fetch(API_BASE + '/audit-access', {
       method:  'POST',
       headers: {

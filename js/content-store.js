@@ -486,29 +486,43 @@
   document.addEventListener("DOMContentLoaded", function () {
     _patch();
 
-    // 1. Fetch media config so CS.mediaUrl() works immediately
-    fetch(API + "/media-url")
-      .then(function (r) {
-        return r.json();
-      })
-      .then(function (data) {
-        _media = data;
-      })
-      .catch(function (e) {
-        console.warn("CS: could not load media config —", e.message);
-      });
+    // Wait for auth before booting
+    function _waitForAuth() {
+      if (window._authReady) {
+        _boot();
+      } else {
+        setTimeout(_waitForAuth, 50);
+      }
+    }
 
-    // 2. Fetch the draft — this is the main boot sequence
-    _req("GET", "/draft")
-      .then(function (data) {
-        _draft = data;
-        // Log access for audit — fire and forget, don't block render
-        if (window.render) window.render();
+    function _boot() {
+      fetch(API + "/media-url", {
+        headers: window._authToken
+          ? { Authorization: "Bearer " + window._authToken }
+          : {},
       })
-      .catch(function (e) {
-        console.error("CS: failed to load draft \u2014", e.message);
-        _toast("Could not load draft: " + e.message, "danger");
-      });
+        .then(function (r) {
+          return r.json();
+        })
+        .then(function (data) {
+          _media = data;
+        })
+        .catch(function (e) {
+          console.warn("CS: media config failed —", e.message);
+        });
+
+      _req("GET", "/draft")
+        .then(function (data) {
+          _draft = data;
+          if (window.render) window.render();
+        })
+        .catch(function (e) {
+          console.warn("CS: draft load failed —", e.message);
+          _toast("Could not load draft: " + e.message, "danger");
+        });
+    }
+
+    _waitForAuth();
   });
 
   // -------------------------------------------------------------------------

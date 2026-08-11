@@ -12,6 +12,14 @@
 
 <body>
 
+  <!-- Add just after <body> -->
+  <div id="auth-loading" style="
+  position:fixed;inset:0;background:#1a1614;
+  display:flex;align-items:center;justify-content:center;
+  z-index:99999;flex-direction:column;gap:16px;">
+    <img src="your-logo.png" style="width:80px;opacity:.8;">
+    <div style="font-size:13px;color:rgba(255,255,255,0.4);">Signing you in…</div>
+  </div>
   <!-- TOP BAR -->
   <div class="topbar">
     <div class="topbar-left">
@@ -24,7 +32,7 @@
       <div class="topbar-subtitle">Portal</div>
     </div>
     <div class="topbar-right">
-      <!-- Demo role toggle -->     
+      <!-- Demo role toggle -->
       <div class="user-pill">
         <div class="user-avatar" id="userAvatar">BU</div>
         <span class="user-name" id="userName">BPM User</span>
