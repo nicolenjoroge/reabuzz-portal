@@ -14,12 +14,13 @@ var API_BASE =
 // ===== MSAL CONFIG =====
 var MSAL_CONFIG = {
   auth: {
-    clientId: 'e7b4c1f3-119f-4a5c-9a83-eca6314a7926',
-    authority: 'https://login.microsoftonline.com/6a28e8b9-ea23-417c-b7c9-7d38478b2a89',
+    clientId: "e7b4c1f3-119f-4a5c-9a83-eca6314a7926",
+    authority:
+      "https://login.microsoftonline.com/6a28e8b9-ea23-417c-b7c9-7d38478b2a89",
     redirectUri: window.location.origin,
   },
   cache: {
-    cacheLocation: 'sessionStorage',
+    cacheLocation: "sessionStorage",
     storeAuthStateInCookie: false,
   },
 };
@@ -33,16 +34,18 @@ var msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
 
 // ===== AUTH =====
 function loadUser() {
-  var isLocal = window.location.hostname === 'localhost' ||
-                window.location.hostname === '127.0.0.1';
+  var isLocal =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
 
   if (isLocal) {
-    window.currentUser = { name: 'Local Dev', email: 'dev@local', id: 'dev' };
-    _applyUserToUI('Local Dev', 'dev@local');
+    window.currentUser = { name: "Local Dev", email: "dev@local", id: "dev" };
+    _applyUserToUI("Local Dev", "dev@local");
     return Promise.resolve();
   }
 
-  return msalInstance.handleRedirectPromise()
+  return msalInstance
+    .handleRedirectPromise()
     .then(function (response) {
       var account = null;
       var freshLogin = false;
@@ -61,30 +64,55 @@ function loadUser() {
         msalInstance.setActiveAccount(account);
       }
 
-      var email    = account.username || '';
+      var email = account.username || "";
       var fullName = account.name || _nameFromEmail(email);
 
-      window.currentUser = {
-        name:  fullName,
-        email: email,
-        id:    account.localAccountId,
-      };
-      _applyUserToUI(fullName, email);
+      return msalInstance
+        .acquireTokenSilent({
+          scopes: LOGIN_REQUEST.scopes,
+          account: account,
+        })
+        .then(function (tokenResponse) {
+          window._authToken = tokenResponse.accessToken;
+          window._freshLogin = freshLogin;
 
-      return msalInstance.acquireTokenSilent({
-        scopes:  LOGIN_REQUEST.scopes,
-        account: account,
-      })
-      .then(function (tokenResponse) {
-        window._authToken = tokenResponse.accessToken;
-        window._freshLogin = freshLogin;
-      })
-      .catch(function () {
-        msalInstance.acquireTokenRedirect(LOGIN_REQUEST);
-      });
+          // Validate against Cosmos whitelist
+          return fetch(API_BASE + "/auth-validate", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + tokenResponse.accessToken,
+            },
+            body: JSON.stringify({ email: email }),
+          });
+        })
+        .then(function (r) {
+          if (r.status === 403) {
+            _showAccessDenied(email);
+            return null;
+          }
+          return r.json();
+        })
+        .then(function (data) {
+          if (!data) return;
+
+          // Use name from Cosmos — cleaner than MSAL display name
+          var name = data.name || fullName;
+
+          window.currentUser = {
+            name: name,
+            email: email,
+            id: account.localAccountId,
+          };
+          window._freshLogin = freshLogin;
+          _applyUserToUI(name, email);
+        })
+        .catch(function () {
+          msalInstance.acquireTokenRedirect(LOGIN_REQUEST);
+        });
     })
     .catch(function (e) {
-      console.error('MSAL error:', e);
+      console.error("MSAL error:", e);
       msalInstance.loginRedirect(LOGIN_REQUEST);
     });
 }
@@ -94,6 +122,26 @@ function signOut() {
     postLogoutRedirectUri: window.location.origin,
   });
 }
+
+function _showAccessDenied(email) {
+  var overlay = document.getElementById('auth-loading');
+  if (overlay) overlay.style.display = 'none';
+
+  document.body.innerHTML =
+    '<div style="position:fixed;inset:0;background:#1a1614;display:flex;align-items:center;' +
+    'justify-content:center;flex-direction:column;gap:16px;font-family:sans-serif;color:#fff;">' +
+      '<div style="font-size:48px;">🔒</div>' +
+      '<h2 style="font-size:22px;font-weight:bold;margin:0;">Access denied</h2>' +
+      '<p style="font-size:14px;color:rgba(255,255,255,0.5);margin:0;text-align:center;">' +
+        (email || 'Your account') + ' is not authorised to access this portal.<br>' +
+        'Contact the BPM team to request access.' +
+      '</p>' +
+      '<button onclick="signOut()" style="margin-top:16px;padding:10px 24px;' +
+        'background:#3ab3e5;color:#fff;border:none;border-radius:8px;' +
+        'font-size:13px;font-weight:bold;cursor:pointer;">Sign out</button>' +
+    '</div>';
+}
+
 
 function _nameFromEmail(email) {
   if (!email) return "User";
@@ -112,7 +160,6 @@ function _applyUserToUI(name, email) {
   if (nameEl) nameEl.textContent = name;
   if (avatarEl) avatarEl.textContent = (name || "U").charAt(0).toUpperCase();
 }
-
 
 // ===== ROUTING =====
 function showPanel(panel) {
@@ -802,23 +849,23 @@ function showToast(msg, type) {
 // ===== INIT =====
 loadUser().then(function () {
   // Log access now that currentUser is set
-  
+
   window._authReady = true;
 
-  var overlay = document.getElementById('auth-loading');
-  if (overlay) overlay.style.display = 'none';
+  var overlay = document.getElementById("auth-loading");
+  if (overlay) overlay.style.display = "none";
 
   if (window._freshLogin && window.currentUser && window.currentUser.name) {
-    fetch(API_BASE + '/audit-access', {
-      method:  'POST',
+    fetch(API_BASE + "/audit-access", {
+      method: "POST",
       headers: {
-        'Content-Type':  'application/json',
-        'Authorization': window._authToken ? 'Bearer ' + window._authToken : '',
+        "Content-Type": "application/json",
+        Authorization: window._authToken ? "Bearer " + window._authToken : "",
       },
       body: JSON.stringify({
         user: window.currentUser.name,
       }),
     }).catch(function () {});
   }
-  showPanel('landing');
+  showPanel("landing");
 });
