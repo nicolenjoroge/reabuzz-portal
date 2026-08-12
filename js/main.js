@@ -52,17 +52,14 @@ function loadUser() {
       var freshLogin = false;
 
       if (response && response.account) {
-        // Returning from Microsoft login redirect
         account    = response.account;
         freshLogin = true;
         msalInstance.setActiveAccount(account);
       } else {
-        // Page refresh or existing session
         var accounts = msalInstance.getAllAccounts();
         if (!accounts.length) {
-          // No session — redirect to Microsoft login
           msalInstance.loginRedirect(LOGIN_REQUEST);
-          return new Promise(function () {}); // never resolves — page navigating
+          return new Promise(function () {});
         }
         account = accounts[0];
         msalInstance.setActiveAccount(account);
@@ -80,64 +77,28 @@ function loadUser() {
           window._authToken  = tokenResponse.accessToken;
           window._freshLogin = freshLogin;
 
-          // Page refresh — use cached user, skip Cosmos call
-          var cached = sessionStorage.getItem("portal_user");
-          if (cached && !freshLogin) {
-            var user = JSON.parse(cached);
-            window.currentUser = user;
-            _applyUserToUI(user.name, user.email);
-            window._authReady = true;
-            var overlay = document.getElementById("auth-loading");
-            if (overlay) overlay.style.display = "none";
-            showPanel("landing");
-            return;
-          }
-
-          // Fresh login — validate against Cosmos whitelist
-          return fetch(API_BASE + "/auth-validate", {
-            method: "POST",
-            headers: {
-              "Content-Type":  "application/json",
-              "Authorization": "Bearer " + tokenResponse.accessToken,
-            },
-            body: JSON.stringify({ email: email }),
-          })
-            .then(function (r) {
-              if (r.status === 403) {
-                sessionStorage.removeItem("portal_user");
-                _showAccessDenied(email);
-                return null;
-              }
-              return r.json();
-            })
-            .then(function (data) {
-              if (!data) return;
-
-              var name = data.name || fullName;
-              var user = {
-                name:  name,
-                email: email,
-                id:    account.localAccountId,
-              };
-              window.currentUser = user;
-              sessionStorage.setItem("portal_user", JSON.stringify(user));
-              _applyUserToUI(name, email);
-              window._authReady = true;
-              var overlay = document.getElementById("auth-loading");
-              if (overlay) overlay.style.display = "none";
-              showPanel("landing");
-            });
+          var name = fullName;
+          window.currentUser = {
+            name:  name,
+            email: email,
+            id:    account.localAccountId,
+          };
+          _applyUserToUI(name, email);
+          window._authReady = true;
+          var overlay = document.getElementById("auth-loading");
+          if (overlay) overlay.style.display = "none";
+          showPanel("landing");
         })
         .catch(function (e) {
           console.error("Token error:", e);
           msalInstance.acquireTokenRedirect(LOGIN_REQUEST);
-          return new Promise(function () {}); // never resolves — page navigating
+          return new Promise(function () {});
         });
     })
     .catch(function (e) {
       console.error("MSAL error:", e);
       msalInstance.loginRedirect(LOGIN_REQUEST);
-      return new Promise(function () {}); // never resolves — page navigating
+      return new Promise(function () {});
     });
 }
 
@@ -147,25 +108,7 @@ function signOut() {
   });
 }
 
-function _showAccessDenied(email) {
-  var overlay = document.getElementById("auth-loading");
-  if (overlay) overlay.style.display = "none";
 
-  document.body.innerHTML =
-    '<div style="position:fixed;inset:0;background:#1a1614;display:flex;align-items:center;' +
-    'justify-content:center;flex-direction:column;gap:16px;font-family:sans-serif;color:#fff;">' +
-    '<div style="font-size:48px;">🔒</div>' +
-    '<h2 style="font-size:22px;font-weight:bold;margin:0;">Access denied</h2>' +
-    '<p style="font-size:14px;color:rgba(255,255,255,0.5);margin:0;text-align:center;">' +
-    (email || "Your account") +
-    " is not authorised to access this portal.<br>" +
-    "Contact the BPM team to request access." +
-    "</p>" +
-    '<button onclick="signOut()" style="margin-top:16px;padding:10px 24px;' +
-    "background:#3ab3e5;color:#fff;border:none;border-radius:8px;" +
-    'font-size:13px;font-weight:bold;cursor:pointer;">Sign out</button>' +
-    "</div>";
-}
 
 function _nameFromEmail(email) {
   if (!email) return "User";
