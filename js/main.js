@@ -7,7 +7,7 @@ window._authReady = false;
 
 var API_BASE =
   window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1"
+    window.location.hostname === "127.0.0.1"
     ? "http://localhost:5000/api"
     : "https://rea-buzz-api-layers-fkbra6a3dmahckh0.southafricanorth-01.azurewebsites.net/api";
 
@@ -46,11 +46,11 @@ function loadUser() {
 
   return msalInstance.handleRedirectPromise()
     .then(function (response) {
-      var account    = null;
+      var account = null;
       var freshLogin = false;
 
       if (response && response.account) {
-        account    = response.account;
+        account = response.account;
         freshLogin = true;
         msalInstance.setActiveAccount(account);
       } else {
@@ -63,56 +63,69 @@ function loadUser() {
         msalInstance.setActiveAccount(account);
       }
 
-      var email    = account.username || '';
+      var email = account.username || '';
       var fullName = account.name || _nameFromEmail(email);
 
       return msalInstance.acquireTokenSilent({
-        scopes:  LOGIN_REQUEST.scopes,
+        scopes: LOGIN_REQUEST.scopes,
         account: account,
       })
-      .then(function (tokenResponse) {
-        window._authToken  = tokenResponse.accessToken;
-        window._freshLogin = freshLogin;
+        .then(function (tokenResponse) {
+          window._authToken = tokenResponse.accessToken;
+          window._freshLogin = freshLogin;
 
-        // On refresh — use cached user, skip Cosmos call
-        var cached = sessionStorage.getItem('portal_user');
-        if (cached && !freshLogin) {
-          var user = JSON.parse(cached);
+          // On refresh — use cached user, skip Cosmos call
+          var cached = sessionStorage.getItem('portal_user');
+          if (cached && !freshLogin) {
+            var user = JSON.parse(cached);
+            window.currentUser = user;
+            _applyUserToUI(user.name, user.email);
+            return null;  // skip validate
+          }
+
+          // Fresh login — validate against Cosmos
+          return fetch(API_BASE + '/auth-validate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + tokenResponse.accessToken,
+            },
+            body: JSON.stringify({ email: email }),
+          });
+        })
+        .then(function (r) {
+          if (!r) return null;  // came from cache
+          if (r.status === 403) {
+            sessionStorage.removeItem('portal_user');
+            _showAccessDenied(email);
+            return null;
+          }
+          return r.json();
+        })
+        .then(function (data) {
+          if (!data) {
+            // Came from cache — currentUser already set above, boot the portal
+            window._authReady = true;
+            var overlay = document.getElementById('auth-loading');
+            if (overlay) overlay.style.display = 'none';
+            showPanel('landing');
+            return;
+          }
+          var name = data.name || fullName;
+          var user = { name: name, email: email, id: account.localAccountId };
           window.currentUser = user;
-          _applyUserToUI(user.name, user.email);
-          return null;  // skip validate
-        }
+          sessionStorage.setItem('portal_user', JSON.stringify(user));
+          _applyUserToUI(name, email);
 
-        // Fresh login — validate against Cosmos
-        return fetch(API_BASE + '/auth-validate', {
-          method:  'POST',
-          headers: {
-            'Content-Type':  'application/json',
-            'Authorization': 'Bearer ' + tokenResponse.accessToken,
-          },
-          body: JSON.stringify({ email: email }),
+          // Boot the portal
+          window._authReady = true;
+          var overlay = document.getElementById('auth-loading');
+          if (overlay) overlay.style.display = 'none';
+          showPanel('landing');
+        })
+        .catch(function () {
+          msalInstance.acquireTokenRedirect(LOGIN_REQUEST);
         });
-      })
-      .then(function (r) {
-        if (!r) return null;  // came from cache
-        if (r.status === 403) {
-          sessionStorage.removeItem('portal_user');
-          _showAccessDenied(email);
-          return null;
-        }
-        return r.json();
-      })
-      .then(function (data) {
-        if (!data) return;
-        var name = data.name || fullName;
-        var user = { name: name, email: email, id: account.localAccountId };
-        window.currentUser = user;
-        sessionStorage.setItem('portal_user', JSON.stringify(user));
-        _applyUserToUI(name, email);
-      })
-      .catch(function () {
-        msalInstance.acquireTokenRedirect(LOGIN_REQUEST);
-      });
     })
     .catch(function (e) {
       console.error('MSAL error:', e);
@@ -400,7 +413,7 @@ function renderMedia() {
       "Media library",
       "Images and videos stored in Azure Blob Storage.",
       '<button class="btn btn-primary" onclick="triggerUpload()">↑ Upload media</button>' +
-        '<input type="file" id="fileInput" accept="image/*,video/mp4,video/quicktime" multiple style="display:none" onchange="handleFiles(this.files)">',
+      '<input type="file" id="fileInput" accept="image/*,video/mp4,video/quicktime" multiple style="display:none" onchange="handleFiles(this.files)">',
     ) +
     '<div class="panel-body"><div class="table-wrap">' +
     '<div class="table-toolbar">' +
@@ -851,24 +864,15 @@ function showToast(msg, type) {
 
 // ===== INIT =====
 loadUser().then(function () {
-  // Log access now that currentUser is set
-
-  window._authReady = true;
-
-  var overlay = document.getElementById("auth-loading");
-  if (overlay) overlay.style.display = "none";
-
+  // Access log only — showPanel is called inside loadUser now
   if (window._freshLogin && window.currentUser && window.currentUser.name) {
-    fetch(API_BASE + "/audit-access", {
-      method: "POST",
+    fetch(API_BASE + '/audit-access', {
+      method:  'POST',
       headers: {
-        "Content-Type": "application/json",
-        Authorization: window._authToken ? "Bearer " + window._authToken : "",
+        'Content-Type':  'application/json',
+        'Authorization': window._authToken ? 'Bearer ' + window._authToken : '',
       },
-      body: JSON.stringify({
-        user: window.currentUser.name,
-      }),
+      body: JSON.stringify({ user: window.currentUser.name }),
     }).catch(function () {});
   }
-  showPanel("landing");
 });
