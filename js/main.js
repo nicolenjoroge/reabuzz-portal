@@ -35,23 +35,22 @@ var msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
 // ===== AUTH =====
 function loadUser() {
   var isLocal =
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1";
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1';
 
   if (isLocal) {
-    window.currentUser = { name: "Local Dev", email: "dev@local", id: "dev" };
-    _applyUserToUI("Local Dev", "dev@local");
+    window.currentUser = { name: 'Local Dev', email: 'dev@local', id: 'dev' };
+    _applyUserToUI('Local Dev', 'dev@local');
     return Promise.resolve();
   }
 
-  return msalInstance
-    .handleRedirectPromise()
+  return msalInstance.handleRedirectPromise()
     .then(function (response) {
-      var account = null;
+      var account    = null;
       var freshLogin = false;
 
       if (response && response.account) {
-        account = response.account;
+        account    = response.account;
         freshLogin = true;
         msalInstance.setActiveAccount(account);
       } else {
@@ -64,55 +63,59 @@ function loadUser() {
         msalInstance.setActiveAccount(account);
       }
 
-      var email = account.username || "";
+      var email    = account.username || '';
       var fullName = account.name || _nameFromEmail(email);
 
-      return msalInstance
-        .acquireTokenSilent({
-          scopes: LOGIN_REQUEST.scopes,
-          account: account,
-        })
-        .then(function (tokenResponse) {
-          window._authToken = tokenResponse.accessToken;
-          window._freshLogin = freshLogin;
+      return msalInstance.acquireTokenSilent({
+        scopes:  LOGIN_REQUEST.scopes,
+        account: account,
+      })
+      .then(function (tokenResponse) {
+        window._authToken  = tokenResponse.accessToken;
+        window._freshLogin = freshLogin;
 
-          // Validate against Cosmos whitelist
-          return fetch(API_BASE + "/auth-validate", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + tokenResponse.accessToken,
-            },
-            body: JSON.stringify({ email: email }),
-          });
-        })
-        .then(function (r) {
-          if (r.status === 403) {
-            _showAccessDenied(email);
-            return null;
-          }
-          return r.json();
-        })
-        .then(function (data) {
-          if (!data) return;
+        // On refresh — use cached user, skip Cosmos call
+        var cached = sessionStorage.getItem('portal_user');
+        if (cached && !freshLogin) {
+          var user = JSON.parse(cached);
+          window.currentUser = user;
+          _applyUserToUI(user.name, user.email);
+          return null;  // skip validate
+        }
 
-          // Use name from Cosmos — cleaner than MSAL display name
-          var name = data.name || fullName;
-
-          window.currentUser = {
-            name: name,
-            email: email,
-            id: account.localAccountId,
-          };
-          window._freshLogin = freshLogin;
-          _applyUserToUI(name, email);
-        })
-        .catch(function () {
-          msalInstance.acquireTokenRedirect(LOGIN_REQUEST);
+        // Fresh login — validate against Cosmos
+        return fetch(API_BASE + '/auth-validate', {
+          method:  'POST',
+          headers: {
+            'Content-Type':  'application/json',
+            'Authorization': 'Bearer ' + tokenResponse.accessToken,
+          },
+          body: JSON.stringify({ email: email }),
         });
+      })
+      .then(function (r) {
+        if (!r) return null;  // came from cache
+        if (r.status === 403) {
+          sessionStorage.removeItem('portal_user');
+          _showAccessDenied(email);
+          return null;
+        }
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data) return;
+        var name = data.name || fullName;
+        var user = { name: name, email: email, id: account.localAccountId };
+        window.currentUser = user;
+        sessionStorage.setItem('portal_user', JSON.stringify(user));
+        _applyUserToUI(name, email);
+      })
+      .catch(function () {
+        msalInstance.acquireTokenRedirect(LOGIN_REQUEST);
+      });
     })
     .catch(function (e) {
-      console.error("MSAL error:", e);
+      console.error('MSAL error:', e);
       msalInstance.loginRedirect(LOGIN_REQUEST);
     });
 }
@@ -124,24 +127,24 @@ function signOut() {
 }
 
 function _showAccessDenied(email) {
-  var overlay = document.getElementById('auth-loading');
-  if (overlay) overlay.style.display = 'none';
+  var overlay = document.getElementById("auth-loading");
+  if (overlay) overlay.style.display = "none";
 
   document.body.innerHTML =
     '<div style="position:fixed;inset:0;background:#1a1614;display:flex;align-items:center;' +
     'justify-content:center;flex-direction:column;gap:16px;font-family:sans-serif;color:#fff;">' +
-      '<div style="font-size:48px;">🔒</div>' +
-      '<h2 style="font-size:22px;font-weight:bold;margin:0;">Access denied</h2>' +
-      '<p style="font-size:14px;color:rgba(255,255,255,0.5);margin:0;text-align:center;">' +
-        (email || 'Your account') + ' is not authorised to access this portal.<br>' +
-        'Contact the BPM team to request access.' +
-      '</p>' +
-      '<button onclick="signOut()" style="margin-top:16px;padding:10px 24px;' +
-        'background:#3ab3e5;color:#fff;border:none;border-radius:8px;' +
-        'font-size:13px;font-weight:bold;cursor:pointer;">Sign out</button>' +
-    '</div>';
+    '<div style="font-size:48px;">🔒</div>' +
+    '<h2 style="font-size:22px;font-weight:bold;margin:0;">Access denied</h2>' +
+    '<p style="font-size:14px;color:rgba(255,255,255,0.5);margin:0;text-align:center;">' +
+    (email || "Your account") +
+    " is not authorised to access this portal.<br>" +
+    "Contact the BPM team to request access." +
+    "</p>" +
+    '<button onclick="signOut()" style="margin-top:16px;padding:10px 24px;' +
+    "background:#3ab3e5;color:#fff;border:none;border-radius:8px;" +
+    'font-size:13px;font-weight:bold;cursor:pointer;">Sign out</button>' +
+    "</div>";
 }
-
 
 function _nameFromEmail(email) {
   if (!email) return "User";
